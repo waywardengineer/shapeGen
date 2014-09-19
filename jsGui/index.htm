@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<!--<html manifest="offline/offline.manifest">-->
+<html>
+	<head>
+		<title>ShapeGen</title>
+		<script type="text/javascript" src="jsGui/lib/jquery-ui-1.10.4.custom/js/jquery-1.10.2.js"></script>
+		<script type="text/javascript" src="jsGui/lib/jquery-ui-1.10.4.custom/js/jquery-ui-1.10.4.custom.min.js"></script>
+		<script type="text/javascript" src="jsGui/lib/dxf-fish/js/script.js"></script>
+		<script type="text/javascript" src="jsGui/lib/dxf-fish/js/dxf-viewer.js"></script>
+		<script type="text/javascript" src="jsGui/ui.js"></script>
+		<link rel="stylesheet" type="text/css" href="jsGui/style.css">
+		<link rel="stylesheet" type="text/css" href="jsGui/lib/jquery-ui-1.10.4.custom/css/trontastic/jquery-ui-1.10.4.custom.css">
+		<link rel="icon" href="favicon.ico" type="image/x-icon">
+		<script type="text/javascript">
+			$(document).ready(function(e) {
+				doInit();
+			});
+		</script>
+	</head>
+	<body>
+		<div id="inputs"></div>
+		<button id="redrawButton">Redraw</button>
+		<canvas id="canvas" width="600" height="600" style="position:absolute; top:0px; left:200px; height:600px; width:600px"></canvas>
+	</body>
+</html>
