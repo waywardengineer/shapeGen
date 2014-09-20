@@ -47,6 +47,15 @@ class Design(object):
 class TestDesign(Design):
 	def build(self):
 		self.shapes = []
+		spiral = Spiral({
+			'startAngle' : 45, 
+			'centerPoint' : (0,0), 
+			'angleSpan' : 420, 
+			'scaleFactor' : 5, 
+			'growthFactorAdjustment' : 1, 
+			'reverse' : True,
+			'id' : 'spiral'
+		})
 		arc1 = Arc({
 			'startPoint' : (0, 0),
 			'startAngle' : 135,
@@ -57,18 +66,18 @@ class TestDesign(Design):
 			'changeableParams' : ['startAngle']
 		})
 		arc2 = Arc({
-			'startPoint' : 'any.arc1.endPoint',
-			'startAngle' : 'any.arc1.endAngle+180',
+			'startPoint' : 'any.spiral.endPoint',
+			'startAngle' : 'any.spiral.endAngle+180',
 			'radius' : 20,
-			'endAngle' : 315,
+			'endAngle' : 20,
 			'reverse' : False,
 			'id' : 'arc2',
 			'changeableParams' : ['endAngle']
 		})
-		arcs = ShapeGroup('curve', arc1, arc2)
+		arcs = ShapeGroup('curve', spiral, arc2)
 		holes = HolesOnArcChain(arcs, {
 			'holeDistance' : 1, 
-			'holeRadii' : [0.5, 2, 3, 0.5],
+			'holeRadii' : [0.5, 1, 3, 0.5],
 			'id' : 'holeChain',
 			'changeableParams' : ['holeDistance']
 		})
@@ -78,7 +87,6 @@ class TestDesign(Design):
 			((8, 2), 200, (5, 1))
 		]})
 		circle = Circle({'centerPoint' : (0, 0), 'radius' : 5})
-		spiral = Spiral({'startAngle' : 30, 'startPoint' : (0,0), 'angleRange' : 360, 'scaleFactor' : 1, 'growthFactorAdjustment' : 1, 'reverse' : True})
 		topShape = ShapeGroup('top', holes.getTransformedCopy(distance=(0, 10)))
 		for angle in range(30, 360, 30):
 			topShape.subShapes.append(holes.getTransformedCopy(angle = angle, distance=(0, 10)))

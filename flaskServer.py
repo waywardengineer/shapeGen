@@ -17,7 +17,6 @@ def getData():
 @flaskApp.route('/doCommand', methods =['POST'])
 def doCommand():
 	requestData = json.loads(request.data)
-	print requestData
 	command = requestData.pop(0)
 	function = getattr(design, command)
 	return jsonify({'command' : command, 'result' : function(*requestData)})
