@@ -1,15 +1,16 @@
 from dxfwrite import DXFEngine as dxf
 from shapes import *
-
+import json
 
 class Design(object):
 	def __init__(self):
 		self.fileName = 'output.dxf'
-		self.params = {}
+		self.paramDirectory = {}
+		self.modifiedParams = {}
 		self.shapes = []
 	def saveToFile(self):
 		self.drawing = dxf.drawing(self.fileName)
-		self.addShapes()
+		self.build()
 		for shape in self.shapes:
 			shape.addToDrawing(self.drawing)
 		self.drawing.save()
@@ -19,48 +20,67 @@ class Design(object):
 			data = file.read()
 		return data
 	def getCurrentStateData(self):
-		data = {'drawingContents' : self.getDrawingContents(), 'params' : self.params}
+		drawingContents = self.getDrawingContents()
+		paramDataList = []
+		for id in self.paramDirectory.keys():
+			item = self.paramDirectory[id]
+			paramDataList += [{'id' : id + ':' + k, 'value' : item['object'].params[k]} for k in item['changeableParams']]
+		data = {
+			'drawingContents' : drawingContents,
+			'params' : {i['id'] : i['value'] for i in paramDataList} 
+		}
 		return data
-	def addShapes(self):
-		self.shapes = []
-	def updateValue(self, param, value):
-		self.params[param] = value
+	def build(self):
+		paramDirectoryList = []
+		for shape in self.shapes:
+			paramDirectoryList += shape.getParamDirectory()
+		self.paramDirectory = {d['id'] : d for d in paramDirectoryList}
+		for id in self.modifiedParams.keys():
+			(objectId, paramId) = id.split(':')
+			self.paramDirectory[objectId]['object'].updateParam(paramId, self.modifiedParams[id])
+		for shape in self.shapes:
+			shape.build()
+			
+	def updateValue(self, id, value):
+		self.modifiedParams[id] = value
 
 class TestDesign(Design):
-	def __init__(self):
-		Design.__init__(self)
-		self.params = {
-			'arc1StartAngle' : 240,
-			'arc1EndAngle' : 350,
-		}
-	def addShapes(self):
-		Design.addShapes(self)
+	def build(self):
+		self.shapes = []
 		arc1 = Arc({
 			'startPoint' : (0, 0),
-			'startAngle' : self.params['arc1StartAngle'],
-			'endAngle' : self.params['arc1EndAngle'],
-			'radius' : 2
+			'startAngle' : 135,
+			'endAngle' : 45,
+			'radius' : 20,
+			'reverse' : True,
+			'id' : 'arc1',
+			'changeableParams' : ['startAngle']
 		})
 		arc2 = Arc({
-			'startPoint' : arc1.params['endPoint'],
-			'startAngle' : arc1.params['endAngle'] + 180,
-			'radius' : 8,
-			'endAngle' : 60,
-			'reverse' : True
+			'startPoint' : 'any.arc1.endPoint',
+			'startAngle' : 'any.arc1.endAngle+180',
+			'radius' : 20,
+			'endAngle' : 315,
+			'reverse' : False,
+			'id' : 'arc2',
+			'changeableParams' : ['endAngle']
 		})
-		arcs = ShapeGroup(arc1, arc2)
-		arcs2 = arcs.getTransformedCopy(angle = -20)
-		arcsGroup = ShapeGroup(
-			arcs, arcs2
-		)
-		arc3 = Arc({
-			'startPoint' : arcs2.subShapes[1].params['endPoint'],
-			'startAngle' : arcs2.subShapes[1].params['endAngle'] + 180,
-			'radius' : 8,
-			'endAngle' : 300,
-			'reverse' : False
+		arcs = ShapeGroup('curve', arc1, arc2)
+		holes = HolesOnArcChain(arcs, {
+			'holeDistance' : 1, 
+			'holeRadii' : [0.5, 2, 3, 0.5],
+			'id' : 'holeChain',
+			'changeableParams' : ['holeDistance']
 		})
-		armGroup = ShapeGroup(arcsGroup, arc3)
-		armGroup.transform(distance = (-(arc3.params['endPoint'][0] + 2), -(arc3.params['endPoint'][1] + 1)))
-		mainGroup = ShapeGroup(armGroup, armGroup.getTransformedCopy(angle = 120),  armGroup.getTransformedCopy(angle = 240))
-		self.shapes.append(mainGroup)
+		bezCurve = BezCurve({'points' : [
+			((0, 0), 45, (1, 1)),
+			((5, 0), 315, (1, 1)),
+			((8, 2), 200, (5, 1))
+		]})
+		circle = Circle({'centerPoint' : (0, 0), 'radius' : 5})
+		spiral = Spiral({'startAngle' : 30, 'startPoint' : (0,0), 'angleRange' : 360, 'scaleFactor' : 1, 'growthFactorAdjustment' : 1, 'reverse' : True})
+		topShape = ShapeGroup('top', holes.getTransformedCopy(distance=(0, 10)))
+		for angle in range(30, 360, 30):
+			topShape.subShapes.append(holes.getTransformedCopy(angle = angle, distance=(0, 10)))
+		self.shapes.append(topShape)
+		Design.build(self)

@@ -1,7 +1,10 @@
+
+
+paramIds = [];
 function doInit(){
 	canvas = document.getElementById('canvas');
-	//canvas.width = window.innerWidth -15;
-	//canvas.height = window.innerHeight -15; 
+	canvas.width = window.innerWidth -275;
+	canvas.height = window.innerHeight -15; 
 	ctx = canvas.getContext('2d');
 	$('#redrawButton').button().click(function(e){
 		getLatestData();
@@ -24,12 +27,16 @@ function updateDisplay(){
 		dxf_lesen(currentStateData.drawingContents);
 	}
 	inputHtml = ''
+	paramIdNum = 0;
+	paramIds = []
 	$.each(currentStateData.params, function(paramId, paramData){
-		inputHtml += '<label for="' + paramId + '">' + paramId + '</label><input id="' + paramId + '" value=' + paramData + ' class="paramInput ui-widget  ui-widget-content ui-corner-all"><br>';
+		inputHtml += '<label for="' + paramIdNum + '">' + paramId + '</label><input id="' + paramIdNum + '" value=' + paramData + ' class="paramInput ui-widget  ui-widget-content ui-corner-all"><br>';
+		paramIds.push(paramId);
+		paramIdNum ++;
 	});
 	$('#inputs').html(inputHtml);
 	$('.paramInput').change(function(e){
-		doCommand(['updateValue', this.id, parseFloat($('#' + this.id).val())]);
+		doCommand(['updateValue', paramIds[parseInt(this.id)], parseFloat($('#' + this.id).val())]);
 	});
 }
 function doCommand(command){

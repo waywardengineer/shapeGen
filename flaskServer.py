@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from flask import Flask, request, jsonify, Response
 import json
-from gevent.wsgi import WSGIServer
 
 from modules.design import TestDesign
 design = TestDesign()
@@ -18,14 +17,10 @@ def getData():
 @flaskApp.route('/doCommand', methods =['POST'])
 def doCommand():
 	requestData = json.loads(request.data)
+	print requestData
 	command = requestData.pop(0)
 	function = getattr(design, command)
 	return jsonify({'command' : command, 'result' : function(*requestData)})
 
 if __name__ == '__main__':
-	flaskApp.debug = True 
-	server = WSGIServer(("", 80), flaskApp)
-	try:
-		server.serve_forever()
-	except:
-		pass
+	flaskApp.run(debug = True, port=80) 

@@ -31,8 +31,6 @@ drawing = [];
 layers = [];
 
 //Standartwerte, werden für den ersten Frame verwendet, dann autoscale und redraw
-view_x = 150;
-view_y = 400;
 view_scale = 12;
 
 //Variablen in denen die Dimension des Modells gespeichert werden
@@ -40,10 +38,12 @@ model_min_x = 0;
 model_max_x = 0;
 model_min_y = 0;
 model_max_y = 0;
-
+model_x_center = 0;
+model_y_center = 0
 //Bem ersten Frame soll hinterher die Skala und der Ursprung angepasst werden
 auto_scale = true;
-
+view_x = 300;
+view_y = 300;
 
 function activate_controls(){
 	
@@ -55,7 +55,7 @@ function activate_controls(){
 				view_scale = view_scale - 2;
 				redraw();
 			} else {
-				view_scale = view_scale+ 2;
+				view_scale = view_scale + 2;
 				redraw();
 			}
 			e.preventDefault();
@@ -67,7 +67,7 @@ function activate_controls(){
 				view_scale = view_scale - 1;
 				redraw();
 			} else {
-				view_scale = view_scale+ 1;
+				view_scale = view_scale + 1;
 				redraw();
 			}
 			e.preventDefault();
@@ -126,20 +126,29 @@ function do_auto_scale(){
 	ctx.beginPath();
 	ctx.arc(x(0)-2.5,y(0)-2.5,5,0,(Math.PI/180)*360,true);
 	ctx.stroke();
-	var breite = model_max_x - model_min_x;
+	var width = model_max_x - model_min_x;
+	console.log('extents');
 	console.log(model_max_x)
 	console.log(model_min_x)
-	
-	var scale_nach_breite = (canvas.width-10)/breite;
-	var hoehe = model_max_y - model_min_y;
-	var scale_nach_hoehe = (canvas.height-10)/hoehe;
-	if (scale_nach_hoehe < scale_nach_breite) {
-		view_scale = scale_nach_hoehe;
+	console.log(model_max_y)
+	console.log(model_min_y)
+	console.log(canvas.height)
+	console.log(canvas.width)
+	var x_scale_factor = canvas.width / width;
+	var height = model_max_y - model_min_y;
+	var y_scale_factor = canvas.height / height;
+	if (y_scale_factor < x_scale_factor) {
+		view_scale = y_scale_factor;
 	} else {
-		view_scale = scale_nach_breite;
+		view_scale = x_scale_factor;
 	}
-	view_x = - scale(model_min_x)+5;
-	view_y = (- scale(model_min_y))/1 + 15;	
+	view_scale *= 0.9;
+	model_x_center = model_min_x + ((model_max_x - model_min_x) / 2);
+	model_y_center = model_min_y + ((model_max_y - model_min_y) / 2);
+	view_x = canvas.width / 2;
+	view_y = canvas.height / 2;
+	console.log(model_x_center)
+	console.log(model_y_center)
 	redraw();
 }
 
@@ -354,7 +363,6 @@ function draw_text(element){
 
 function draw_arc(element){
 	ctx.beginPath();
-	//console.log(element.start_winkel+" bis "+element.end_winkel+" org:"+element.org_start_winkel+" bis "+element.org_end_winkel );
 	var anticlockwise = true; //Aus Header auslesen!
 	ctx.arc(x(element.x1),y(element.y1),scale(element.radius),(Math.PI/180)*(360-element.start_winkel % 360),(Math.PI/180)*(360-element.end_winkel % 360),anticlockwise);
 	ctx.stroke();
@@ -362,7 +370,7 @@ function draw_arc(element){
 
 function draw_circle(element){
 	element.start_winkel = 0;
-	element.end_winkel = 360;
+	element.end_winkel = 359.99;
 	draw_arc(element);
 }
 
@@ -391,38 +399,33 @@ function x(wert){
 	if (wert > model_max_x) {
 		model_max_x = wert;
 	};
-	return scale(wert)+view_x;
+	return scale(wert - model_x_center) + view_x;
 }
 
-function un_x(wert){
-	return unscale(wert-view_x);
-}
 
 function y(wert){
 	if (wert < model_min_y) model_min_y = wert;
 	if (wert > model_max_y) model_max_y = wert;
-	return  - (scale(wert))+view_y;
+	console.log(wert);
+	console.log(model_y_center);
+	console.log(view_y)
+	console.log(scale(wert - model_y_center) + view_y)
+	return  - (scale(wert - model_y_center)) + view_y;
 }
 
-function un_y(wert){
-	return unscale(-(wert-view_y));
-}
 
 function scale(wert){
 	return wert*view_scale;
 }
 
-function unscale(wert){
-	return wert / view_scale;
-}
 
 function draw_massstab()
 {
 	//Vertikal
 	ctx.beginPath();
 	ctx.moveTo(0, canvas.height-1);
-	ctx.lineTo(scale(10), canvas.height-1);
-	for (var a = 0; a <= 10; a++){
+	ctx.lineTo(canvas.width, canvas.height-1);
+	for (var a = 0; a <= parseInt(canvas.width / view_scale); a++){
 		if ( a % 10 == 0 ){ var strich = 7 } 
 		else { if ( a % 5 == 0 ) {var strich = 5;}
 		else { var strich = 2;} };
@@ -433,8 +436,8 @@ function draw_massstab()
 	//Horizontal
 	ctx.beginPath();
 	ctx.moveTo(0, canvas.height);
-	ctx.lineTo(0, canvas.height - scale(10));
-	for (var a = 0; a <= 10; a++){
+	ctx.lineTo(0, 0);
+	for (var a = 0; a <= parseInt(canvas.height / view_scale); a++){
 		if ( a % 10 == 0 ){ var strich = 7 } 
 		else { if ( a % 5 == 0 ) {var strich = 5;}
 		else { var strich = 2;} };
