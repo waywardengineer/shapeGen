@@ -47,48 +47,150 @@ class Design(object):
 class TestDesign(Design):
 	def build(self):
 		self.shapes = []
+		arcChain = ArcChain('arcChain', [{
+			'startAngle' : 90, 
+			'centerPoint' : (10,0), 
+			'angleSpan' : 390, 
+			'scaleFactor' : 1, 
+			'growthFactorAdjustment' : 1, 
+			'reverse' : True
+		},{
+			'angleSpan' : 30,
+			'radius' : 3
+		},{
+			'angleSpan' : 30,
+			'radius' : 10,
+			'noDirectionAlternate' : True
+		},{
+			'angleSpan' : 30,
+			'radius' : 3
+		},{
+			'angleSpan' : 30,
+			'radius' : 3
+		}])
+		holes = HolesOnArcChain(arcChain, {
+			'holeDistance' : 1, 
+			'holeRadii' : [0.125, 0.25, 1, 0.5],
+			'id' : 'holeChain',
+			'changeableParams' : ['holeDistance']
+		})
+		# bezCurve = BezCurve({'points' : [
+			# ((0, 0), 45, (1, 1)),
+			# ((5, 0), 315, (1, 1)),
+			# ((8, 2), 200, (5, 1))
+		# ]})
+		# circle = Circle({'centerPoint' : (0, 0), 'radius' : 5})
+		spiral = Spiral({
+			'startAngle' : 90, 
+			'centerPoint' : (10,0), 
+			'angleSpan' : 420, 
+			'scaleFactor' : 1, 
+			'growthFactorAdjustment' : 1, 
+			'reverse' : True,
+			'id' : 'spiral'
+		})
+		topShape = ShapeGroup('top')
+		for angle in range(0, 360, 30):
+			topShape.subShapes.append(holes.getTransformedCopy(angle = angle, distance=(10, 0)))
+		self.shapes.append(topShape)
+		Design.build(self)
+
+class HoleySpiralArm(Design):
+	def build(self):
+		self.shapes = []
 		spiral = Spiral({
 			'startAngle' : 45, 
 			'centerPoint' : (0,0), 
 			'angleSpan' : 420, 
-			'scaleFactor' : 5, 
+			'scaleFactor' : 0.5, 
 			'growthFactorAdjustment' : 1, 
 			'reverse' : True,
 			'id' : 'spiral'
 		})
 		arc1 = Arc({
-			'startPoint' : (0, 0),
-			'startAngle' : 135,
-			'endAngle' : 45,
-			'radius' : 20,
-			'reverse' : True,
-			'id' : 'arc1',
-			'changeableParams' : ['startAngle']
-		})
-		arc2 = Arc({
 			'startPoint' : 'any.spiral.endPoint',
 			'startAngle' : 'any.spiral.endAngle+180',
-			'radius' : 20,
-			'endAngle' : 20,
+			'endAngle' : 'any.spiral.endAngle+250',
+			'radius' : 4,
 			'reverse' : False,
+			'id' : 'arc1',
+			'changeableParams' : []
+		})
+		arc2 = Arc({
+			'startPoint' : 'any.arc1.endPoint',
+			'startAngle' : 'any.arc1.endAngle+180',
+			'radius' : 5,
+			'endAngle' : 'any.arc1.endAngle+100',
+			'reverse' : True,
 			'id' : 'arc2',
 			'changeableParams' : ['endAngle']
 		})
-		arcs = ShapeGroup('curve', spiral, arc2)
-		holes = HolesOnArcChain(arcs, {
-			'holeDistance' : 1, 
-			'holeRadii' : [0.5, 1, 3, 0.5],
+		middleCurve = ShapeGroup('middleCurve', spiral, arc1, arc2)
+
+		spiral = Spiral({
+			'startAngle' : 'any.middleCurve.spiral.startAngle', 
+			'centerPoint' : (0,0), 
+			'angleSpan' : 'any.middleCurve.spiral.angleSpan', 
+			'scaleFactor' : 'any.middleCurve.spiral.scaleFactor*1.2', 
+			'growthFactorAdjustment' : 1, 
+			'reverse' : True,
+			'id' : 'spiral'
+		})
+		arc1 = Arc({
+			'startPoint' : 'any.spiral.endPoint',
+			'startAngle' : 'any.spiral.endAngle+180',
+			'endAngle' : 'any.spiral.endAngle+250',
+			'radius' : 'any.middleCurve.arc1.radius*0.7',
+			'reverse' : False,
+			'id' : 'arc1',
+			'changeableParams' : []
+		})
+		arc2 = Arc({
+			'startPoint' : 'any.arc1.endPoint',
+			'startAngle' : 'any.arc1.endAngle+180',
+			'radius' : 'any.middleCurve.arc2.radius*1.4',
+			'endAngle' : 'any.arc1.endAngle+120',
+			'reverse' : True,
+			'id' : 'arc2',
+			'changeableParams' : ['endAngle']
+		})
+		outerCurve = ShapeGroup('outerCurve', spiral, arc1, arc2)
+
+		spiral = Spiral({
+			'startAngle' : 'any.middleCurve.spiral.startAngle', 
+			'centerPoint' : (0,0), 
+			'angleSpan' : 'any.middleCurve.spiral.angleSpan+30', 
+			'scaleFactor' : 'any.middleCurve.spiral.scaleFactor*0.8', 
+			'growthFactorAdjustment' : 1, 
+			'reverse' : True,
+			'id' : 'spiral'
+		})
+		arc1 = Arc({
+			'startPoint' : 'any.spiral.endPoint',
+			'startAngle' : 'any.spiral.endAngle+180',
+			'endAngle' : 'any.spiral.endAngle+250',
+			'radius' : 'any.middleCurve.arc1.radius*1.2',
+			'reverse' : False,
+			'id' : 'arc1',
+			'changeableParams' : []
+		})
+		arc2 = Arc({
+			'startPoint' : 'any.arc1.endPoint',
+			'startAngle' : 'any.arc1.endAngle+180',
+			'radius' : 'any.middleCurve.arc2.radius*0.8',
+			'endAngle' : 'any.arc1.endAngle+100',
+			'reverse' : True,
+			'id' : 'arc2',
+			'changeableParams' : ['endAngle']
+		})
+		innerCurve = ShapeGroup('innerCurve', spiral, arc1, arc2)
+		holes = HolesOnArcChain(middleCurve, {
+			'holeDistance' : 0.125, 
+			'holeRadii' : [0.125, 0.25, 1, 0.5],
 			'id' : 'holeChain',
 			'changeableParams' : ['holeDistance']
 		})
-		bezCurve = BezCurve({'points' : [
-			((0, 0), 45, (1, 1)),
-			((5, 0), 315, (1, 1)),
-			((8, 2), 200, (5, 1))
-		]})
-		circle = Circle({'centerPoint' : (0, 0), 'radius' : 5})
-		topShape = ShapeGroup('top', holes.getTransformedCopy(distance=(0, 10)))
-		for angle in range(30, 360, 30):
-			topShape.subShapes.append(holes.getTransformedCopy(angle = angle, distance=(0, 10)))
+		topShape = ShapeGroup('top', innerCurve, holes, outerCurve, middleCurve)
+		middleCurve.updateParam('dontRenderSubShapes', True)
 		self.shapes.append(topShape)
 		Design.build(self)

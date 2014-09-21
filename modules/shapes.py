@@ -60,6 +60,7 @@ class Shape(object):
 		self.processParams()
 		for subShape in self.subShapes:
 			subShape.build()
+			print subShape.params
 
 	def makeDataWrappers(self):
 		self.p = DataWrapper(self.params)
@@ -67,8 +68,9 @@ class Shape(object):
 			subShape.makeDataWrappers()
 
 	def addToDrawing(self, drawing):
-		for subShape in self.subShapes:
-			subShape.addToDrawing(drawing)
+		if not self.p.dontRenderSubShapes:
+			for subShape in self.subShapes:
+				subShape.addToDrawing(drawing)
 
 	def transform(self, angle = 0, distance = (0, 0)):
 		self.transformations.append((angle, distance))
@@ -114,52 +116,69 @@ class Shape(object):
 		self.params[param] = value
 
 	def processParams(self):
-		for paramKey in self.params.keys():
-			if paramKey not in ['id', 'reverse'] and isinstance(self.params[paramKey], basestring):
-				self.derivedParams.append(paramKey)
-				param = self.params[paramKey]
-				foundMathOperation = False
-				for operator in ['+', '-', '/', '*']:
-					if operator in param:
-						foundMathOperation = operator
-						(param, operand) = param.split(operator)
-				identifier = param.split('.')
-				param = self.passParamSearchUpward(len(identifier) - 2, identifier)
-				if param is None:
-					raise Exception('Error looking up param ' + '.'.join(identifier))
-				if foundMathOperation:
-					operand = float(operand)
-					if foundMathOperation == '+':
-						param += operand
-					elif foundMathOperation == '-':
-						param -= operand
-					elif foundMathOperation == '/':
-						param /= operand
-					elif foundMathOperation == '*':
-						param *= operand
-				self.params[paramKey] = param
-	def passParamSearchUpward(self, levelsLeft, *searchParams):
+		def processListOfParams(paramIds):
+			for paramId in paramIds:
+				if paramId not in ['id', 'reverse', 'changeableParams'] and isinstance(self.params[paramId], basestring):
+					self.derivedParams.append(paramId)
+					param = self.params[paramId]
+					foundMathOperation = False
+					for operator in ['+', '-', '/', '*']:
+						if operator in param:
+							foundMathOperation = operator
+							(param, operand) = param.split(operator)
+					identifier = param.split('.')
+					if len(identifier) == 2:
+						if paramId not in selfReferencedParamKeys:
+							selfReferencedParamKeys.append(paramId)
+							continue
+					param = self.passParamSearchUpward(len(identifier) - 2, identifier)
+					if param is None:
+						raise Exception('Error looking up param ' + '.'.join(identifier))
+					if foundMathOperation:
+						operand = float(operand)
+						if foundMathOperation == '+':
+							param += operand
+						elif foundMathOperation == '-':
+							param -= operand
+						elif foundMathOperation == '/':
+							param /= operand
+						elif foundMathOperation == '*':
+							param *= operand
+					self.params[paramId] = param
+		selfReferencedParamKeys = []
+		processListOfParams(self.params.keys())
+		processListOfParams(selfReferencedParamKeys)
+
+	def passParamSearchUpward(self, levelsLeft, identifier):
 		if levelsLeft > 0:
 			if self.parent:
-				return self.parent.passParamSearchUpward(levelsLeft - 1, *searchParams)
+				return self.parent.passParamSearchUpward(levelsLeft - 1, identifier)
 		else:
-			return self.doParamSearch(*searchParams)
+			if len(identifier) > 0:
+				return self.doParamSearch(identifier)
+		return None
 
 	def doParamSearch(self, identifier):
-		id = identifier.pop(0)
-		if id in [self.p.id, 'any']:
-			if len(identifier) == 1:
-				if identifier[0] in self.params.keys():
-					return self.params[identifier[0]]
-			else:
-				for shape in self.subShapes:
-					result = shape.doParamSearch(identifier)
-					if result is not None:
-						return result
+		identifier = deepcopy(identifier)
+		if len(identifier) > 0:
+			id = identifier.pop(0)
+			if id in [self.p.id, 'any']:
+				if len(identifier) == 1:
+					if identifier[0] in self.params.keys():
+						return self.params[identifier[0]]
+				elif len(identifier) > 1:
+					for shape in self.subShapes:
+						result = shape.doParamSearch(identifier)
+						if result is not None:
+							return result
 		return None
 
 	def setParent(self, parent):
 		self.parent = parent
+
+	def addSubShape(self, shape):
+		self.subShapes.append(shape)
+		shape.setParent(self)
 
 class ShapeGroup(Shape):
 	def __init__(self, id, *shapes):
@@ -312,6 +331,9 @@ class Spiral(Shape):
 		Shape.build(self, *args)
 		self.applyTransforms()
 		angleFromStart = 0
+		print ''
+		print 'spiralparams'
+		print self.params
 		self.points = []
 		self.arcLengthLookup = []
 		if self.p.reverse:
@@ -332,6 +354,8 @@ class Spiral(Shape):
 		self.params['arcLength'] = arcLength
 		self.params['endPoint'] = self.points[-1]
 		self.params['endAngle'] = degrees(atan2(self.points[-1][1] - self.points[-2][1], self.points[-1][0] - self.points[-2][0])) + 90
+		self.params['lineStartPoint'] = self.points[0]
+		self.params['lineStartAngle'] = degrees(atan2(self.points[0][1] - self.points[1][1], self.points[0][0] - self.points[1][0])) + 90
 
 	def lookupArcLength(self, angleFromStart):
 		result = [i for i, v in enumerate(self.arcLengthLookup) if v[0] < angleFromStart]
@@ -351,10 +375,40 @@ class Spiral(Shape):
 		for transform in self.transformations:
 			(angle, distance) = transform
 			if 'centerPoint' in self.params.keys() and 'centerPoint' not in self.derivedParams:
-				self.params['centerPoint'] = (self.params['centerPoint'][0] + distance[0], self.params['centerPoint'][1] + distance[1])
+				self.params['centerPoint'] = transformPoint(self.p.centerPoint, angle, distance)
 			if 'startAngle' not in self.derivedParams:
 				self.params['startAngle'] += angle
 
+class ArcChain(ShapeGroup):
+	def __init__(self, id, definitions):
+		ShapeGroup.__init__(self,id)
+		for i, definition in enumerate(definitions):
+			if 'growthFactorAdjustment' in definition.keys():
+				shape = Spiral(definition)
+			else:
+				shape = Arc(definition)
+			self.addSubShape(shape)
+			shape.updateParam('id', self.p.id + '_curve' + str(i))
+			if i > 0:
+				lastShape = self.subShapes[i-1]
+				if shape.p.noDirectionAlternate:
+					reverse = lastShape.p.reverse
+				else:
+					reverse = not lastShape.p.reverse
+				shape.updateParam('reverse', reverse)
+				if shape.__class__.__name__=='Arc':
+					shape.updateParam('startPoint', '.'.join(['any', lastShape.p.id, 'endPoint']))
+					if shape.p.noDirectionAlternate:
+						startAngleStr = 'endAngle'
+					else:
+						startAngleStr = 'endAngle+180'
+					shape.updateParam('startAngle', '.'.join(['any', lastShape.p.id, startAngleStr]))
+			if shape.__class__.__name__=='Arc':
+				if shape.p.reverse:
+					endAngleStr = 'startAngle-' + str(shape.p.angleSpan)
+				else:
+					endAngleStr = 'startAngle+' + str(shape.p.angleSpan)
+				shape.updateParam('endAngle', '.'.join([shape.p.id, endAngleStr]))
 
 class HolesOnArcChain(Shape):
 	def __init__(self, arcChain, *args):
@@ -384,7 +438,10 @@ class HolesOnArcChain(Shape):
 				radius = arc.p.radius
 			elif arc.__class__.__name__ == 'Spiral':
 				radius = arc.getRadius(angleOnArc)
-			angleIncrement = 2 * degrees(asin(distanceToNextHole / (2 * radius)))
+			ratio = distanceToNextHole / (2 * radius)
+			if ratio > 1:
+				return 180
+			angleIncrement = 2 * degrees(asin(ratio))
 			return angleIncrement
 
 		def getCenterPoint(arcIndex, angleOnArc):
