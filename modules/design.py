@@ -48,50 +48,29 @@ class TestDesign(Design):
 	def build(self):
 		self.shapes = []
 		arcChain = ArcChain('arcChain', [{
+			'startPoint' : (0, 0),
 			'startAngle' : 90, 
-			'centerPoint' : (10,0), 
-			'angleSpan' : 390, 
-			'scaleFactor' : 1, 
-			'growthFactorAdjustment' : 1, 
-			'reverse' : True
+			'angleSpan' : 45, 
+			'radius' : 5,
+			'reverse' : True,
 		},{
-			'angleSpan' : 30,
-			'radius' : 3
+			'angleSpan' : 90,
+			'radius' :5
 		},{
-			'angleSpan' : 30,
-			'radius' : 10,
-			'noDirectionAlternate' : True
-		},{
-			'angleSpan' : 30,
-			'radius' : 3
-		},{
-			'angleSpan' : 30,
-			'radius' : 3
+			'angleSpan' : 90,
+			'radius' : 5
 		}])
 		holes = HolesOnArcChain(arcChain, {
-			'holeDistance' : 1, 
-			'holeRadii' : [0.125, 0.25, 1, 0.5],
-			'id' : 'holeChain',
-			'changeableParams' : ['holeDistance']
+			'holeDistance' : 0.125, 
+			'holeRadii' : [0.125, 0.5, 0.25, 0.125],
+			'id' : 'holeChain'
 		})
-		# bezCurve = BezCurve({'points' : [
-			# ((0, 0), 45, (1, 1)),
-			# ((5, 0), 315, (1, 1)),
-			# ((8, 2), 200, (5, 1))
-		# ]})
-		# circle = Circle({'centerPoint' : (0, 0), 'radius' : 5})
-		spiral = Spiral({
-			'startAngle' : 90, 
-			'centerPoint' : (10,0), 
-			'angleSpan' : 420, 
-			'scaleFactor' : 1, 
-			'growthFactorAdjustment' : 1, 
-			'reverse' : True,
-			'id' : 'spiral'
-		})
-		topShape = ShapeGroup('top')
-		for angle in range(0, 360, 30):
-			topShape.subShapes.append(holes.getTransformedCopy(angle = angle, distance=(10, 0)))
+		group = ShapeGroup('group', arcChain)
+		# arcChain.transform(angle = 45)#'holeChain.arcChain.startAngle')
+		group.transform(distance='group.arcChain.endPoint*-1')
+		topShape = ShapeGroup('top', group, Circle({'centerPoint' : (0, 0), 'radius' : 5}))
+		# for angle in range(0, 360, 30):
+			# topShape.subShapes.append(holes.getTransformedCopy(angle = angle, distance=(-20, -5)))
 		self.shapes.append(topShape)
 		Design.build(self)
 

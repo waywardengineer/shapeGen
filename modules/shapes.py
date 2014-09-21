@@ -3,6 +3,7 @@ from copy import deepcopy, copy
 from dxfwrite import DXFEngine as dxf
 minLineSize = 0.1
 
+
 def listContains(searchList, list):
 	match = True
 	for item in searchList:
@@ -53,14 +54,14 @@ class Shape(object):
 		self.makeDataWrappers()
 		self.parent = False
 		self.timesCopied = 0
-		self.transformations = []
+		self.transforms = []
 		self.derivedParams = []
 
 	def build(self):
-		self.processParams()
 		for subShape in self.subShapes:
 			subShape.build()
-			print subShape.params
+		self.processParams()
+		self.applyTransforms()
 
 	def makeDataWrappers(self):
 		self.p = DataWrapper(self.params)
@@ -73,16 +74,22 @@ class Shape(object):
 				subShape.addToDrawing(drawing)
 
 	def transform(self, angle = 0, distance = (0, 0)):
-		self.transformations.append((angle, distance))
-		for subShape in self.subShapes:
-			subShape.transform(angle, distance)
+		self.transforms.append((angle, distance))
+		# for subShape in self.subShapes:
+			# subShape.transform(angle, distance)
+
 
 	def applyTransforms(self):
-		pass
+		for transform in self.transforms:
+			for subShape in self.subShapes:
+				subShape.transform(*transform)
+		for subShape in self.subShapes:
+			subShape.applyTransforms()
+		self.transforms = []
 
 	def getCopy(self, topLevelCopy = True):
 		newCopy = copy(self)
-		for attr in ['params', 'transformations', 'timesCopied', 'derivedParams']:
+		for attr in ['params', 'transforms', 'timesCopied', 'derivedParams']:
 			setattr(newCopy, attr, deepcopy(getattr(self, attr)))
 		newCopy.makeDataWrappers()
 		newCopy.subShapes = [s.getCopy(False) for s in self.subShapes]
@@ -114,19 +121,37 @@ class Shape(object):
 
 	def updateParam(self, param, value):
 		self.params[param] = value
-
+		
+	def prepareParamForMathOperation(self, param):
+		operator = False
+		operand = False
+		for operatorToCheck in ['/', '*', '+', '-']:
+			if (not operator) and operatorToCheck in param:
+				operator = operatorToCheck
+				(param, operand) = param.split(operatorToCheck)
+		return (param, operator, operand)
+	def doParamMathOperation(self, param, operator, operand):
+		if operator:
+			if isinstance(param, tuple):
+				param = (self.doParamMathOperation(param[0], operator, operand), self.doParamMathOperation(param[1], operator, operand))
+			else:
+				operand = float(operand)
+				if operator == '+':
+					param += operand
+				elif operator == '-':
+					param -= operand
+				elif operator == '/':
+					param /= operand
+				elif operator == '*':
+					param *= operand
+		return param
 	def processParams(self):
 		def processListOfParams(paramIds):
 			for paramId in paramIds:
 				if paramId not in ['id', 'reverse', 'changeableParams'] and isinstance(self.params[paramId], basestring):
 					self.derivedParams.append(paramId)
-					param = self.params[paramId]
-					foundMathOperation = False
-					for operator in ['+', '-', '/', '*']:
-						if operator in param:
-							foundMathOperation = operator
-							(param, operand) = param.split(operator)
-					identifier = param.split('.')
+					result = self.prepareParamForMathOperation(self.params[paramId])
+					identifier = result[0].split('.')
 					if len(identifier) == 2:
 						if paramId not in selfReferencedParamKeys:
 							selfReferencedParamKeys.append(paramId)
@@ -134,20 +159,27 @@ class Shape(object):
 					param = self.passParamSearchUpward(len(identifier) - 2, identifier)
 					if param is None:
 						raise Exception('Error looking up param ' + '.'.join(identifier))
-					if foundMathOperation:
-						operand = float(operand)
-						if foundMathOperation == '+':
-							param += operand
-						elif foundMathOperation == '-':
-							param -= operand
-						elif foundMathOperation == '/':
-							param /= operand
-						elif foundMathOperation == '*':
-							param *= operand
+					param = self.doParamMathOperation(param, result[1], result[2])
 					self.params[paramId] = param
 		selfReferencedParamKeys = []
 		processListOfParams(self.params.keys())
 		processListOfParams(selfReferencedParamKeys)
+		for i in range(len(self.transforms)):
+			changed = False
+			newTransform = [self.transforms[i][0], self.transforms[i][1]] 
+			for j in range(2):
+				if isinstance(self.transforms[i][j], basestring):
+					result = self.prepareParamForMathOperation(self.transforms[i][j])
+					identifier = result[0].split('.')
+					param = self.doParamSearch(identifier)
+					if param is None:
+						print self.params
+						print identifier
+						raise Exception('Error looking up param ' + '.'.join(identifier))
+					newTransform[j] = self.doParamMathOperation(param, result[1], result[2])
+					changed = True
+			if changed:
+				self.transforms[i] = (newTransform[0], newTransform[1])
 
 	def passParamSearchUpward(self, levelsLeft, identifier):
 		if levelsLeft > 0:
@@ -160,6 +192,11 @@ class Shape(object):
 
 	def doParamSearch(self, identifier):
 		identifier = deepcopy(identifier)
+		print ''
+		print self.params
+		print identifier
+		print ''
+		
 		if len(identifier) > 0:
 			id = identifier.pop(0)
 			if id in [self.p.id, 'any']:
@@ -195,20 +232,18 @@ class Circle(Shape):
 		circle = dxf.circle(self.p.radius, self.p.centerPoint, layer = '0')
 		drawing.add(circle)
 	def applyTransforms(self):
-		for transform in self.transformations:
+		transforms = deepcopy(self.transforms)
+		Shape.applyTransforms(self)
+		for transform in transforms:
 			(angle, distance) = transform
 			for key in ['centerPoint']:
 				if key in self.params.keys() and key not in self.derivedParams:
 					self.params[key] = transformPoint(self.params[key], angle, distance)
-	def build(self, *args): 
-		Shape.build(self, *args)
-		self.applyTransforms()
 
 
 class Arc(Shape):
 	def build(self, *args): #takes [startPoint, startAngle, endPoint] or [startPoint, startAngle, radius, endAngle] or [centerPoint, radius, startAngle, endAngle]
 		Shape.build(self, *args)
-		self.applyTransforms()
 		if listContains(['startPoint', 'startAngle', 'endPoint'], self.params.keys()):
 			startPoint = self.p.startPoint
 			startAngleRads = radians(self.p.startAngle)
@@ -268,15 +303,16 @@ class Arc(Shape):
 			drawing.add(arc)
 
 	def applyTransforms(self):
-		for transform in self.transformations:
+		transforms = deepcopy(self.transforms)
+		Shape.applyTransforms(self)
+		for transform in transforms:
 			(angle, distance) = transform
 			for key in ['startPoint', 'endPoint', 'centerPoint']:
-				if key in self.params.keys() and key not in self.derivedParams:
+				if key in self.params.keys():
 					self.params[key] = transformPoint(self.params[key], angle, distance)
 			for key in ['startAngle', 'endAngle']:
-				if key in self.params.keys() and key not in self.derivedParams:
+				if key in self.params.keys():
 					self.params[key] += angle
-
 
 class BezCurve(Shape):
 	def addToDrawing(self, drawing):
@@ -304,12 +340,10 @@ class BezCurve(Shape):
 		vectorIn = (unitVectorIn[0] * strengthIn, unitVectorIn[1] * strengthIn)
 		return (vectorIn, vectorOut)
 
-	def build(self, *args): 
-		Shape.build(self, *args)
-		self.applyTransforms()
-
 	def applyTransforms(self):
-		for transform in self.transformations:
+		transforms = deepcopy(self.transforms)
+		Shape.applyTransforms(self)
+		for transform in transforms:
 			(angle, distance) = transform
 			newPoints = []
 			for point in self.params['points']:
@@ -329,11 +363,7 @@ class Spiral(Shape):
 
 	def build(self, *args): 
 		Shape.build(self, *args)
-		self.applyTransforms()
 		angleFromStart = 0
-		print ''
-		print 'spiralparams'
-		print self.params
 		self.points = []
 		self.arcLengthLookup = []
 		if self.p.reverse:
@@ -372,12 +402,13 @@ class Spiral(Shape):
 			drawing.add(line)
 			
 	def applyTransforms(self):
-		for transform in self.transformations:
+		transforms = deepcopy(self.transforms)
+		Shape.applyTransforms(self)
+		for transform in transforms:
 			(angle, distance) = transform
-			if 'centerPoint' in self.params.keys() and 'centerPoint' not in self.derivedParams:
+			if 'centerPoint' in self.params.keys():
 				self.params['centerPoint'] = transformPoint(self.p.centerPoint, angle, distance)
-			if 'startAngle' not in self.derivedParams:
-				self.params['startAngle'] += angle
+			self.params['startAngle'] += angle
 
 class ArcChain(ShapeGroup):
 	def __init__(self, id, definitions):
@@ -409,11 +440,23 @@ class ArcChain(ShapeGroup):
 				else:
 					endAngleStr = 'startAngle+' + str(shape.p.angleSpan)
 				shape.updateParam('endAngle', '.'.join([shape.p.id, endAngleStr]))
+	def build(self):
+		ShapeGroup.build(self)
+		if self.subShapes[0].__class__.__name__ == 'Spiral':
+			startPoint = self.subShapes[0].p.lineStartPoint
+			startAngle = self.subShapes[0].p.lineStartAngle
+		else:
+			startPoint = self.subShapes[0].p.startPoint
+			startAngle = self.subShapes[0].p.startAngle
+		self.params['startPoint'] = startPoint
+		self.params['startAngle'] = startAngle
+		self.params['endPoint'] = self.subShapes[-1].p.endPoint
+		self.params['endAngle'] = self.subShapes[-1].p.endAngle
 
 class HolesOnArcChain(Shape):
 	def __init__(self, arcChain, *args):
 		Shape.__init__(self, *args)
-		self.subShapes = [arcChain]
+		self.addSubShape(arcChain)
 	def build(self, *args):
 		def calculateNextRadius(arcIndex, angleOnArc):
 			arc = arcs[arcIndex]
@@ -470,7 +513,6 @@ class HolesOnArcChain(Shape):
 			return angle
 
 		Shape.build(self, *args)
-		self.applyTransforms()
 		arcs = self.subShapes[0].subShapes
 		totalArcLength = sum(arc.p.arcLength for arc in arcs)
 		currentArcIndex = 0
@@ -499,7 +541,7 @@ class HolesOnArcChain(Shape):
 			if currentArcIndex < len(arcs):
 				currentAngleOnArc = transitionToNextArc(centerPoint, distanceToNextHole, currentArcIndex)
 	def addToDrawing(self, drawing):
-		self.subShapes.pop(0)
+		self.subShapes[0].updateParam('dontRenderSubShapes', True)
 		Shape.addToDrawing(self, drawing)
 
 

@@ -51,4 +51,5 @@ function doCommand(command){
 	});
 }
 function handleCommandResult(result){
+	getLatestData();
 }
