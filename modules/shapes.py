@@ -56,7 +56,7 @@ class Shape(object):
 		self.timesCopied = 0
 		self.transforms = []
 		self.derivedParams = []
-
+		self.params['type'] = self.__class__.__name__
 	def build(self):
 		for subShape in self.subShapes:
 			subShape.build()
@@ -75,9 +75,6 @@ class Shape(object):
 
 	def transform(self, angle = 0, distance = (0, 0)):
 		self.transforms.append((angle, distance))
-		# for subShape in self.subShapes:
-			# subShape.transform(angle, distance)
-
 
 	def applyTransforms(self):
 		for transform in self.transforms:
@@ -121,7 +118,7 @@ class Shape(object):
 
 	def updateParam(self, param, value):
 		self.params[param] = value
-		
+
 	def prepareParamForMathOperation(self, param):
 		operator = False
 		operand = False
@@ -130,6 +127,7 @@ class Shape(object):
 				operator = operatorToCheck
 				(param, operand) = param.split(operatorToCheck)
 		return (param, operator, operand)
+
 	def doParamMathOperation(self, param, operator, operand):
 		if operator:
 			if isinstance(param, tuple):
@@ -145,10 +143,11 @@ class Shape(object):
 				elif operator == '*':
 					param *= operand
 		return param
+
 	def processParams(self):
 		def processListOfParams(paramIds):
 			for paramId in paramIds:
-				if paramId not in ['id', 'reverse', 'changeableParams'] and isinstance(self.params[paramId], basestring):
+				if paramId not in ['id', 'type'] and isinstance(self.params[paramId], basestring):
 					self.derivedParams.append(paramId)
 					result = self.prepareParamForMathOperation(self.params[paramId])
 					identifier = result[0].split('.')
@@ -156,7 +155,7 @@ class Shape(object):
 						if paramId not in selfReferencedParamKeys:
 							selfReferencedParamKeys.append(paramId)
 							continue
-					param = self.passParamSearchUpward(len(identifier) - 2, identifier)
+					param = self.doParamSearch(identifier)
 					if param is None:
 						raise Exception('Error looking up param ' + '.'.join(identifier))
 					param = self.doParamMathOperation(param, result[1], result[2])
@@ -181,24 +180,22 @@ class Shape(object):
 			if changed:
 				self.transforms[i] = (newTransform[0], newTransform[1])
 
-	def passParamSearchUpward(self, levelsLeft, identifier):
-		if levelsLeft > 0:
-			if self.parent:
-				return self.parent.passParamSearchUpward(levelsLeft - 1, identifier)
-		else:
-			if len(identifier) > 0:
-				return self.doParamSearch(identifier)
-		return None
-
 	def doParamSearch(self, identifier):
 		identifier = deepcopy(identifier)
 		print ''
 		print self.params
 		print identifier
 		print ''
-		
 		if len(identifier) > 0:
 			id = identifier.pop(0)
+			if id == 'parent':
+				if self.parent:
+					if not identifier[0] == 'parent':
+						identifier.insert(0, 'any')
+					return self.parent.doParamSearch(identifier)
+				else:
+					print self.params
+					raise Exception('Param refers to parent, but shape has no parent')
 			if id in [self.p.id, 'any']:
 				if len(identifier) == 1:
 					if identifier[0] in self.params.keys():
@@ -371,10 +368,10 @@ class Spiral(Shape):
 		else:
 			direction = 1
 		arcLength = 0
-		while angleFromStart <= self.p.angleSpan:
+		while angleFromStart <= self.p.sweepAngleSpan:
 			radius = self.getRadius(angleFromStart)
 			if not ('minRadius' in self.params.keys() and radius < self.params['minRadius']):
-				pointInPolar = (self.params['startAngle'] + direction * angleFromStart, radius)
+				pointInPolar = (self.p.sweepStartAngle + direction * angleFromStart, radius)
 				point = addVectors(polarToCartesian(pointInPolar), self.p.centerPoint)
 				if len(self.points) > 0:
 					arcLength += distanceBetween(point, self.points[-1])
@@ -384,8 +381,8 @@ class Spiral(Shape):
 		self.params['arcLength'] = arcLength
 		self.params['endPoint'] = self.points[-1]
 		self.params['endAngle'] = degrees(atan2(self.points[-1][1] - self.points[-2][1], self.points[-1][0] - self.points[-2][0])) + 90
-		self.params['lineStartPoint'] = self.points[0]
-		self.params['lineStartAngle'] = degrees(atan2(self.points[0][1] - self.points[1][1], self.points[0][0] - self.points[1][0])) + 90
+		self.params['startPoint'] = self.points[0]
+		self.params['startAngle'] = degrees(atan2(self.points[0][1] - self.points[1][1], self.points[0][0] - self.points[1][0])) + 90
 
 	def lookupArcLength(self, angleFromStart):
 		result = [i for i, v in enumerate(self.arcLengthLookup) if v[0] < angleFromStart]
@@ -405,10 +402,16 @@ class Spiral(Shape):
 		transforms = deepcopy(self.transforms)
 		Shape.applyTransforms(self)
 		for transform in transforms:
+			# print self.params
+			# print transform
 			(angle, distance) = transform
-			if 'centerPoint' in self.params.keys():
-				self.params['centerPoint'] = transformPoint(self.p.centerPoint, angle, distance)
-			self.params['startAngle'] += angle
+			for key in ['centerPoint', 'startPoint', 'endPoint']:
+				if key in self.params.keys():
+					self.params[key] = transformPoint(self.params[key], angle, distance)
+			for key in ['startAngle', 'endAngle', 'sweepStartAngle']:
+				self.params[key] += angle
+			for i, point in enumerate(self.points[:]):
+				self.points[i] = transformPoint(point, angle, distance)
 
 class ArcChain(ShapeGroup):
 	def __init__(self, id, definitions):
@@ -419,7 +422,7 @@ class ArcChain(ShapeGroup):
 			else:
 				shape = Arc(definition)
 			self.addSubShape(shape)
-			shape.updateParam('id', self.p.id + '_curve' + str(i))
+			shape.updateParam('id', 'arc' + str(i))
 			if i > 0:
 				lastShape = self.subShapes[i-1]
 				if shape.p.noDirectionAlternate:
@@ -427,14 +430,14 @@ class ArcChain(ShapeGroup):
 				else:
 					reverse = not lastShape.p.reverse
 				shape.updateParam('reverse', reverse)
-				if shape.__class__.__name__=='Arc':
-					shape.updateParam('startPoint', '.'.join(['any', lastShape.p.id, 'endPoint']))
+				if shape.p.type == 'Arc':
+					shape.updateParam('startPoint', '.'.join(['parent', lastShape.p.id, 'endPoint']))
 					if shape.p.noDirectionAlternate:
 						startAngleStr = 'endAngle'
 					else:
 						startAngleStr = 'endAngle+180'
-					shape.updateParam('startAngle', '.'.join(['any', lastShape.p.id, startAngleStr]))
-			if shape.__class__.__name__=='Arc':
+					shape.updateParam('startAngle', '.'.join(['parent', lastShape.p.id, startAngleStr]))
+			if shape.p.type == 'Arc':
 				if shape.p.reverse:
 					endAngleStr = 'startAngle-' + str(shape.p.angleSpan)
 				else:
@@ -461,9 +464,9 @@ class HolesOnArcChain(Shape):
 		def calculateNextRadius(arcIndex, angleOnArc):
 			arc = arcs[arcIndex]
 			arcLengthUsed = sum([arcs[i].p.arcLength for i in range(currentArcIndex)])
-			if arc.__class__.__name__ == 'Arc':
+			if arc.p.type == 'Arc':
 				arcLengthUsed += (angleOnArc / arc.p.angleSpan) * arc.p.arcLength
-			elif arc.__class__.__name__ == 'Spiral':
+			elif arc.p.type == 'Spiral':
 				arcLengthUsed += arc.lookupArcLength(angleOnArc)
 			interval = totalArcLength / (len(self.p.holeRadii) - 1.)
 			angle = (pi / 2) * ((arcLengthUsed % interval) / interval)
@@ -477,9 +480,9 @@ class HolesOnArcChain(Shape):
 
 		def calculateNextAngleIncrement(arcIndex, angleOnArc, distanceToNextHole):
 			arc = arcs[arcIndex]
-			if arc.__class__.__name__ == 'Arc':
+			if arc.p.type == 'Arc':
 				radius = arc.p.radius
-			elif arc.__class__.__name__ == 'Spiral':
+			elif arc.p.type == 'Spiral':
 				radius = arc.getRadius(angleOnArc)
 			ratio = distanceToNextHole / (2 * radius)
 			if ratio > 1:
@@ -489,19 +492,23 @@ class HolesOnArcChain(Shape):
 
 		def getCenterPoint(arcIndex, angleOnArc):
 			arc = arcs[arcIndex]
-			if arc.p.reverse:
-				angle = arc.p.startAngle - angleOnArc
+			if arc.p.type == 'Spiral':
+				startAngle = arc.p.sweepStartAngle
 			else:
-				angle = arc.p.startAngle + angleOnArc
-			if arc.__class__.__name__ == 'Arc':
+				startAngle = arc.p.startAngle
+			if arc.p.reverse:
+				angle = startAngle - angleOnArc
+			else:
+				angle = startAngle + angleOnArc
+			if arc.p.type == 'Arc':
 				radius = arc.p.radius
-			elif arc.__class__.__name__ == 'Spiral':
+			elif arc.p.type == 'Spiral':
 				radius = arc.getRadius(angleOnArc)
 			vector = polarToCartesian((angle, radius))
 			return (vector[0] + arc.p.centerPoint[0], vector[1] + arc.p.centerPoint[1])
 
 		def transitionToNextArc(lastCenterPoint, targetDistanceToNextHole, newArcIndex):
-			angle = 0
+			angle = 0.
 			error = 100
 			lastError = 200
 			while error > 5 and error < lastError:
@@ -509,7 +516,9 @@ class HolesOnArcChain(Shape):
 				newCenterPoint = getCenterPoint(newArcIndex, angle)
 				distanceToNextHole = hypot(lastCenterPoint[0] - newCenterPoint[0], lastCenterPoint[1] - newCenterPoint[1])
 				error = 100. * (targetDistanceToNextHole - distanceToNextHole) / targetDistanceToNextHole
-				angle += 1
+				angle += 0.25
+			print 'angle'
+			print angle
 			return angle
 
 		Shape.build(self, *args)
@@ -520,7 +529,12 @@ class HolesOnArcChain(Shape):
 		nextRadius = self.p.holeRadii[0]
 		angleIncrement = 5
 		while currentArcIndex < len(arcs):
-			while currentAngleOnArc < arcs[currentArcIndex].p.angleSpan:
+			arc = arcs[currentArcIndex]
+			if arc.p.type == 'Arc':
+				angleSpan = arc.p.angleSpan
+			elif arc.p.type == 'Spiral':
+				angleSpan = arc.p.sweepAngleSpan
+			while currentAngleOnArc < angleSpan:
 				thisRadius = nextRadius
 				centerPoint = getCenterPoint(currentArcIndex, currentAngleOnArc)
 				self.subShapes.append(Circle({
@@ -544,5 +558,22 @@ class HolesOnArcChain(Shape):
 		self.subShapes[0].updateParam('dontRenderSubShapes', True)
 		Shape.addToDrawing(self, drawing)
 
-
+class ShapeChain(ShapeGroup):
+	def __init__(self, id, *shapesAndConnections):
+		ShapeGroup.__init__(self, id, *[s[0] for s in shapesAndConnections])
+		self.connections = [s[1] for s in shapesAndConnections]
+	def build(self):
+		ShapeGroup.build(self)
+		pointNames = {'e' : 'endPoint', 's' : 'startPoint'}
+		for i in range(1, len(self.connections)):
+			fromPointName = pointNames[self.connections[i-1][0]]
+			toPointName = pointNames[self.connections[i-1][1]]
+			fromShape = self.subShapes[i-1]
+			toShape = self.subShapes[i]
+			transform = (
+				fromShape.params[fromPointName][0] - toShape.params[toPointName][0],
+				fromShape.params[fromPointName][1] - toShape.params[toPointName][1]
+			)
+			toShape.transform(distance=transform)
+			toShape.applyTransforms()
 

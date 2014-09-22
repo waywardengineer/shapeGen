@@ -49,30 +49,98 @@ class TestDesign(Design):
 		self.shapes = []
 		arcChain = ArcChain('arcChain', [{
 			'startPoint' : (0, 0),
-			'startAngle' : 90, 
-			'angleSpan' : 45, 
+			'startAngle' : 120, 
+			'angleSpan' : 30, 
 			'radius' : 5,
 			'reverse' : True,
 		},{
-			'angleSpan' : 90,
+			'angleSpan' : 60,
 			'radius' :5
 		},{
-			'angleSpan' : 90,
-			'radius' : 5
+			'angleSpan' : 60,#center
+			'radius' : 3
+		},{
+			'angleSpan' : 60,
+			'radius' : 5,
+		},{
+			'angleSpan' : 30,
+			'radius' : 5,
 		}])
 		holes = HolesOnArcChain(arcChain, {
-			'holeDistance' : 0.125, 
-			'holeRadii' : [0.125, 0.5, 0.25, 0.125],
+			'holeDistance' : 0.2, 
+			'holeRadii' : [0.125, 0.5, 1, 0.125],
 			'id' : 'holeChain'
 		})
-		group = ShapeGroup('group', arcChain)
-		# arcChain.transform(angle = 45)#'holeChain.arcChain.startAngle')
-		group.transform(distance='group.arcChain.endPoint*-1')
-		topShape = ShapeGroup('top', group, Circle({'centerPoint' : (0, 0), 'radius' : 5}))
+		endArc = Arc({
+			'startPoint' : (0, 0),
+			'startAngle' : 90,
+			'endAngle' : 270,
+			'radius' : 3,
+			'reverse' : True,
+			'id' : 'endArc'
+		})
+		circle = Circle({
+			'centerPoint' : 'parent.arcChain.arc2.centerPoint',
+			'radius' : 1
+		})
+		oneSide = ShapeGroup('oneSide', arcChain, endArc)
+		#sideTwo = oneSide.getTransformedCopy(angle=120)
+		sides = ShapeChain('sides', (arcChain, 'se'), (arcChain.getTransformedCopy(angle=120), 'es'))
+		# , distance='parent.oneSide.endArc.endPoint*-1'
+		topShape = ShapeGroup('top', sides)
 		# for angle in range(0, 360, 30):
-			# topShape.subShapes.append(holes.getTransformedCopy(angle = angle, distance=(-20, -5)))
+			# topShape.subShapes.append(holes.getTransformedCopy(angle = angle))
 		self.shapes.append(topShape)
 		Design.build(self)
+class ThreeSidedThing(Design):
+	def build(self):
+		self.shapes = []
+		arcChain = ArcChain('arcChain', [{
+			'startPoint' : (0, 0),
+			'startAngle' : 120, 
+			'angleSpan' : 30, 
+			'radius' : 5,
+			'reverse' : True,
+		},{
+			'angleSpan' : 60,
+			'radius' :5
+		},{
+			'angleSpan' : 60,#center
+			'radius' : 3
+		},{
+			'angleSpan' : 60,
+			'radius' : 5,
+		},{
+			'angleSpan' : 30,
+			'radius' : 5,
+		}])
+		holes = HolesOnArcChain(arcChain, {
+			'holeDistance' : 0.2, 
+			'holeRadii' : [0.125, 0.5, 1, 0.125],
+			'id' : 'holeChain'
+		})
+		endArc = Arc({
+			'startPoint' : (0, 0),
+			'startAngle' : 90,
+			'endAngle' : 270,
+			'radius' : 3,
+			'reverse' : True,
+			'id' : 'endArc'
+		})
+		circle = Circle({
+			'centerPoint' : 'parent.arcChain.arc2.centerPoint',
+			'radius' : 1
+		})
+		oneSide = ShapeGroup('oneSide', arcChain, endArc, circle)
+		sideTwo = oneSide.getTransformedCopy(angle=120)
+		sides = ShapeGroup('sides', oneSide, sideTwo)
+		# , distance='parent.oneSide.endArc.endPoint*-1'
+		topShape = ShapeGroup('top', sides)
+		# for angle in range(0, 360, 30):
+			# topShape.subShapes.append(holes.getTransformedCopy(angle = angle))
+		self.shapes.append(topShape)
+		Design.build(self)
+
 
 class HoleySpiralArm(Design):
 	def build(self):
