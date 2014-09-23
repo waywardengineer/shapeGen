@@ -32,7 +32,7 @@ def addVectors(point1, point2):
 def interpolate(value, pair1, pair2):
 	return pair1[1] + (pair2[1] - pair1[1]) * ((value - pair1[0]) / (pair2[0] - pair1[0]))
 
-class DataWrapper():
+class DictWrapper():
 	def __init__(self, dictObj):
 		self._dictObj = dictObj
 	def __getattr__(self, item):
@@ -40,9 +40,20 @@ class DataWrapper():
 			if item in self._dictObj.keys():
 				data = self._dictObj[item]
 				if isinstance(data, dict):
-					return DataWrapper(self._dictObj[item])
+					return DictWrapper(self._dictObj[item])
 				else:
 					return data
+		return False
+class ListWrapper():
+	def __init__(self, listObj):
+		self._listObj = listObj
+	def __getattr__(self, item):
+		if item not in ['_dictObj']:
+			if len(item) == 1:
+				index = ord(item) - 97
+				if index < len(self._listObj):
+					return self._listObj[index]
+
 		return False
 
 
@@ -65,7 +76,8 @@ class Shape(object):
 		self.applyTransforms()
 
 	def makeDataWrappers(self):
-		self.p = DataWrapper(self.params)
+		self.p = DictWrapper(self.params)
+		self.s = ListWrapper(self.subShapes)
 		for subShape in self.subShapes:
 			subShape.makeDataWrappers()
 
@@ -98,8 +110,8 @@ class Shape(object):
 		newCopy = copy(self)
 		for attr in ['params', 'transforms', 'timesCopied', 'primaryParams', 'derivedParams']:
 			setattr(newCopy, attr, deepcopy(getattr(self, attr)))
-		newCopy.makeDataWrappers()
 		newCopy.subShapes = [s.getCopy(False) for s in self.subShapes]
+		newCopy.makeDataWrappers()
 		for shape in newCopy.subShapes:
 			shape.setParent(newCopy)
 		if self.p.id and topLevelCopy:
@@ -166,6 +178,8 @@ class Shape(object):
 							continue
 					param = self.doParamSearch(identifier)
 					if param is None:
+						# print identifier
+						# print self.params
 						raise Exception('Error looking up param ' + '.'.join(identifier))
 					param = self.doParamMathOperation(param, result[1], result[2])
 					self.params[paramId] = param
@@ -228,7 +242,7 @@ class Shape(object):
 class ShapeGroup(Shape):
 	def __init__(self, id, *shapes):
 		Shape.__init__(self, {'id' : id})
-		self.subShapes = [shape for shape in shapes]
+		self.subShapes.extend([shape for shape in shapes])
 		if self.p.id:
 			for shape in self.subShapes:
 				shape.setParent(self)

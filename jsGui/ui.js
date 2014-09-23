@@ -30,7 +30,7 @@ function updateDisplay(){
 	paramIdNum = 0;
 	paramIds = []
 	$.each(currentStateData.params, function(paramId, paramData){
-		inputHtml += '<label for="' + paramIdNum + '">' + paramId + '</label><input id="' + paramIdNum + '" value=' + paramData + ' class="paramInput ui-widget  ui-widget-content ui-corner-all"><br>';
+		inputHtml += '<label for="' + paramIdNum + '">' + paramId + '</label><br><input id="' + paramIdNum + '" value=' + paramData + ' class="paramInput ui-widget  ui-widget-content ui-corner-all"><br>';
 		paramIds.push(paramId);
 		paramIdNum ++;
 	});

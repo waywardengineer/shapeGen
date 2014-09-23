@@ -115,40 +115,61 @@ class ThreeSidedThing(Design):
 			'angleSpan' : 30, 
 			'radius' : 5,
 			'reverse' : True,
+			#'changeableParams' : ['radius', 'angleSpan'],
 		},{
 			'angleSpan' : 60,
-			'radius' :5
+			'radius' :5,
+			#'changeableParams' : ['radius', 'angleSpan'],
 		},{
 			'angleSpan' : 60,#center
 			'radius' : 3
 		},{
 			'angleSpan' : 60,
-			'radius' : 5,
+			'radius' : 'parent.arc1.radius',
 		},{
 			'angleSpan' : 30,
-			'radius' : 5,
+			'radius' : 'parent.arc0.radius',
 		}])
-		# holes = HolesOnArcChain(arcChain, {
-			# 'holeDistance' : 0.2, 
-			# 'holeRadii' : [0.125, 0.5, 1, 0.125],
-			# 'id' : 'holeChain'
-		# })
+		arcChainForHoles = ArcChain('arcChainForHoles', [{
+			'startAngle' : 280, 
+			'angleSpan' : 50, 
+			'centerPoint' : 'parent.parent.parent.oneEdge.arcChain.arc1.centerPoint',
+			'radius' : 5.8,
+			'reverse' : False,
+			'changeableParams' : ['radius', 'startAngle', 'endAngle'],
+		},{
+			'angleSpan' : 60,
+			'radius' :2.2,
+			'changeableParams' : ['radius', 'angleSpan'],
+		},{
+			'angleSpan' : 50,
+			'radius' : 'parent.arc0.radius'
+		}])
+		holes = HolesOnArcChain(arcChainForHoles, {
+			'holeDistance' : 0.2, 
+			'holeRadii' : [0.125, 0.5, 0.0625, 0.5, 0.125],
+			'id' : 'holeChain'
+		})
 		endArc = Arc({
 			'startPoint' : (0, 0),
-			'startAngle' : 90,
-			'endAngle' : 270,
+			'startAngle' : 110,
+			'endAngle' : 250,
 			'radius' : 3,
 			'reverse' : True,
 			'id' : 'endArc'
 		})
 		circle = Circle({
 			'centerPoint' : 'parent.oneEdge.arcChain.arc2.centerPoint',
-			'radius' : 1
+			'radius' : 1,
+			#'changeableParams' : ['radius'],
+			'id' : 'circle'
 		})
 		oneEdge = ShapeChain('oneEdge', (endArc, 'es'), (arcChain, 'se'))
-		oneSide = ShapeGroup('oneSide', oneEdge, circle)
+		oneSide = ShapeGroup('oneSide', oneEdge, circle, holes)
 		sides = ShapeChain('sides', (oneSide, 'es'), (oneSide.getTransformedCopy(angle=120), 'es'), (oneSide.getTransformedCopy(angle=240), 'es'))
 		topShape = ShapeGroup('top', sides)
+		sides.s.b.s.b.updateParam('radius', 'parent.parent.oneSide.circle.radius*1.2')
+		sides.s.c.s.b.updateParam('radius', 'parent.parent.oneSide.circle.radius*1.5')
 		# for angle in range(0, 360, 30):
 			# topShape.subShapes.append(holes.getTransformedCopy(angle = angle))
 		self.shapes.append(topShape)
