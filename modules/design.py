@@ -83,9 +83,9 @@ class TestDesign(Design):
 			'centerPoint' : 'parent.arcChain.arc2.centerPoint',
 			'radius' : 1
 		})
-		oneSide = ShapeGroup('oneSide', arcChain, endArc)
+		oneSide = ShapeChain('oneSide', (endArc, 'es'), (arcChain, 'se'))
 		#sideTwo = oneSide.getTransformedCopy(angle=120)
-		sides = ShapeChain('sides', (arcChain, 'se'), (arcChain.getTransformedCopy(angle=120), 'es'))
+		sides = ShapeChain('sides', (oneSide, 'es'), (oneSide.getTransformedCopy(angle=120), 'es'), (oneSide.getTransformedCopy(angle=240), 'es'))
 		# , distance='parent.oneSide.endArc.endPoint*-1'
 		topShape = ShapeGroup('top', sides)
 		# for angle in range(0, 360, 30):

@@ -445,6 +445,8 @@ class ArcChain(ShapeGroup):
 				shape.updateParam('endAngle', '.'.join([shape.p.id, endAngleStr]))
 	def build(self):
 		ShapeGroup.build(self)
+		self.getStartAndEndPoints()
+	def getStartAndEndPoints(self):
 		if self.subShapes[0].__class__.__name__ == 'Spiral':
 			startPoint = self.subShapes[0].p.lineStartPoint
 			startAngle = self.subShapes[0].p.lineStartAngle
@@ -455,6 +457,10 @@ class ArcChain(ShapeGroup):
 		self.params['startAngle'] = startAngle
 		self.params['endPoint'] = self.subShapes[-1].p.endPoint
 		self.params['endAngle'] = self.subShapes[-1].p.endAngle
+		
+	def applyTransforms(self):
+		Shape.applyTransforms(self)
+		self.getStartAndEndPoints()
 
 class HolesOnArcChain(Shape):
 	def __init__(self, arcChain, *args):
@@ -562,18 +568,32 @@ class ShapeChain(ShapeGroup):
 	def __init__(self, id, *shapesAndConnections):
 		ShapeGroup.__init__(self, id, *[s[0] for s in shapesAndConnections])
 		self.connections = [s[1] for s in shapesAndConnections]
+		self.pointNames = {'e' : 'endPoint', 's' : 'startPoint'}
 	def build(self):
 		ShapeGroup.build(self)
-		pointNames = {'e' : 'endPoint', 's' : 'startPoint'}
 		for i in range(1, len(self.connections)):
-			fromPointName = pointNames[self.connections[i-1][0]]
-			toPointName = pointNames[self.connections[i-1][1]]
+			fromPointName = self.pointNames[self.connections[i-1][1]]
+			toPointName = self.pointNames[self.connections[i][0]]
 			fromShape = self.subShapes[i-1]
 			toShape = self.subShapes[i]
+			print fromShape.params[fromPointName]
+			print toShape.params[toPointName]
 			transform = (
 				fromShape.params[fromPointName][0] - toShape.params[toPointName][0],
 				fromShape.params[fromPointName][1] - toShape.params[toPointName][1]
 			)
+			print transform
 			toShape.transform(distance=transform)
 			toShape.applyTransforms()
+		self.getStartAndEndPoints()
 
+	def getStartAndEndPoints(self):
+		chainStartPointName = self.pointNames[self.connections[0][0]]
+		chainEndPointName = self.pointNames[self.connections[-1][1]]
+		self.params['startPoint'] = self.subShapes[0].params[chainStartPointName]
+		self.params['endPoint'] = self.subShapes[-1].params[chainEndPointName]
+
+	def applyTransforms(self):
+		Shape.applyTransforms(self)
+		self.getStartAndEndPoints()
+		
