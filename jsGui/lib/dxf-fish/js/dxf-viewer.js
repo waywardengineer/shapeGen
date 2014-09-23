@@ -364,7 +364,7 @@ function draw_text(element){
 function draw_arc(element){
 	ctx.beginPath();
 	var anticlockwise = true; //Aus Header auslesen!
-	ctx.arc(x(element.x1),y(element.y1),scale(element.radius),(Math.PI/180)*(360-element.start_winkel % 360),(Math.PI/180)*(360-element.end_winkel % 360),anticlockwise);
+	ctx.arc(x(element.x1),y(element.y1),scale(element.radius),(Math.PI/180)*(360-((720 + element.start_winkel) % 360)),(Math.PI/180)*(360-((720 + element.end_winkel) % 360)),anticlockwise);
 	ctx.stroke();
 }
 
@@ -406,10 +406,6 @@ function x(wert){
 function y(wert){
 	if (wert < model_min_y) model_min_y = wert;
 	if (wert > model_max_y) model_max_y = wert;
-	console.log(wert);
-	console.log(model_y_center);
-	console.log(view_y)
-	console.log(scale(wert - model_y_center) + view_y)
 	return  - (scale(wert - model_y_center)) + view_y;
 }
 

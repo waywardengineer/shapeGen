@@ -55,12 +55,13 @@ class Shape(object):
 		self.parent = False
 		self.timesCopied = 0
 		self.transforms = []
+		self.primaryParams = params.keys()
 		self.derivedParams = []
 		self.params['type'] = self.__class__.__name__
 	def build(self):
 		for subShape in self.subShapes:
 			subShape.build()
-		self.processParams()
+		self.getLinkedParams()
 		self.applyTransforms()
 
 	def makeDataWrappers(self):
@@ -82,11 +83,20 @@ class Shape(object):
 				subShape.transform(*transform)
 		for subShape in self.subShapes:
 			subShape.applyTransforms()
+		for transform in self.transforms:
+			(angle, distance) = transform
+			for key in ['startPoint', 'endPoint', 'centerPoint']:
+				if key in self.params.keys():
+					self.params[key] = transformPoint(self.params[key], angle, distance)
+			for key in ['startAngle', 'endAngle', 'sweepStartAngle']:
+				if key in self.params.keys():
+					self.params[key] += angle
 		self.transforms = []
+		self.calculate()
 
 	def getCopy(self, topLevelCopy = True):
 		newCopy = copy(self)
-		for attr in ['params', 'transforms', 'timesCopied', 'derivedParams']:
+		for attr in ['params', 'transforms', 'timesCopied', 'primaryParams', 'derivedParams']:
 			setattr(newCopy, attr, deepcopy(getattr(self, attr)))
 		newCopy.makeDataWrappers()
 		newCopy.subShapes = [s.getCopy(False) for s in self.subShapes]
@@ -144,11 +154,10 @@ class Shape(object):
 					param *= operand
 		return param
 
-	def processParams(self):
+	def getLinkedParams(self):
 		def processListOfParams(paramIds):
 			for paramId in paramIds:
 				if paramId not in ['id', 'type'] and isinstance(self.params[paramId], basestring):
-					self.derivedParams.append(paramId)
 					result = self.prepareParamForMathOperation(self.params[paramId])
 					identifier = result[0].split('.')
 					if len(identifier) == 2:
@@ -179,13 +188,15 @@ class Shape(object):
 					changed = True
 			if changed:
 				self.transforms[i] = (newTransform[0], newTransform[1])
+	def calculate(self):
+		pass
 
 	def doParamSearch(self, identifier):
 		identifier = deepcopy(identifier)
-		print ''
-		print self.params
-		print identifier
-		print ''
+		# print ''
+		# print self.params
+		# print identifier
+		# print ''
 		if len(identifier) > 0:
 			id = identifier.pop(0)
 			if id == 'parent':
@@ -221,26 +232,22 @@ class ShapeGroup(Shape):
 		if self.p.id:
 			for shape in self.subShapes:
 				shape.setParent(self)
-
+	def calculate(self):
+		Shape.calculate(self)
+		self.params['startPoint'] = self.subShapes[0].p.startPoint
+		self.params['endPoint'] = self.subShapes[0].p.endPoint
+		self.params['startAngle'] = self.subShapes[0].p.startAngle
+		self.params['endAngle'] = self.subShapes[0].p.endAngle
 
 class Circle(Shape):
 	def addToDrawing(self, drawing):
 		Shape.addToDrawing(self, drawing)
 		circle = dxf.circle(self.p.radius, self.p.centerPoint, layer = '0')
 		drawing.add(circle)
-	def applyTransforms(self):
-		transforms = deepcopy(self.transforms)
-		Shape.applyTransforms(self)
-		for transform in transforms:
-			(angle, distance) = transform
-			for key in ['centerPoint']:
-				if key in self.params.keys() and key not in self.derivedParams:
-					self.params[key] = transformPoint(self.params[key], angle, distance)
 
 
 class Arc(Shape):
-	def build(self, *args): #takes [startPoint, startAngle, endPoint] or [startPoint, startAngle, radius, endAngle] or [centerPoint, radius, startAngle, endAngle]
-		Shape.build(self, *args)
+	def calculate(self, *args): #takes [startPoint, startAngle, endPoint] or [startPoint, startAngle, radius, endAngle] or [centerPoint, radius, startAngle, endAngle]
 		if listContains(['startPoint', 'startAngle', 'endPoint'], self.params.keys()):
 			startPoint = self.p.startPoint
 			startAngleRads = radians(self.p.startAngle)
@@ -299,17 +306,6 @@ class Arc(Shape):
 				arc = dxf.arc(self.params['radius'], self.params['centerPoint'], self.params['startAngle'], self.params['endAngle'], layer = '0')
 			drawing.add(arc)
 
-	def applyTransforms(self):
-		transforms = deepcopy(self.transforms)
-		Shape.applyTransforms(self)
-		for transform in transforms:
-			(angle, distance) = transform
-			for key in ['startPoint', 'endPoint', 'centerPoint']:
-				if key in self.params.keys():
-					self.params[key] = transformPoint(self.params[key], angle, distance)
-			for key in ['startAngle', 'endAngle']:
-				if key in self.params.keys():
-					self.params[key] += angle
 
 class BezCurve(Shape):
 	def addToDrawing(self, drawing):
@@ -352,14 +348,14 @@ class BezCurve(Shape):
 				newPoints.append(newPoint)
 			self.params['points'] = newPoints
 
+
 class Spiral(Shape):
 	def getRadius(self, angleFromStart):
 		b = 0.0053468
 		radius = self.params['scaleFactor'] * pow(e, b * self.params['growthFactorAdjustment'] * angleFromStart)
 		return radius
 
-	def build(self, *args): 
-		Shape.build(self, *args)
+	def calculate(self, *args): 
 		angleFromStart = 0
 		self.points = []
 		self.arcLengthLookup = []
@@ -397,21 +393,7 @@ class Spiral(Shape):
 		for i in range(1, len(self.points)):
 			line = dxf.line(self.points[i-1], self.points[i], layer = '0')
 			drawing.add(line)
-			
-	def applyTransforms(self):
-		transforms = deepcopy(self.transforms)
-		Shape.applyTransforms(self)
-		for transform in transforms:
-			# print self.params
-			# print transform
-			(angle, distance) = transform
-			for key in ['centerPoint', 'startPoint', 'endPoint']:
-				if key in self.params.keys():
-					self.params[key] = transformPoint(self.params[key], angle, distance)
-			for key in ['startAngle', 'endAngle', 'sweepStartAngle']:
-				self.params[key] += angle
-			for i, point in enumerate(self.points[:]):
-				self.points[i] = transformPoint(point, angle, distance)
+
 
 class ArcChain(ShapeGroup):
 	def __init__(self, id, definitions):
@@ -443,30 +425,20 @@ class ArcChain(ShapeGroup):
 				else:
 					endAngleStr = 'startAngle+' + str(shape.p.angleSpan)
 				shape.updateParam('endAngle', '.'.join([shape.p.id, endAngleStr]))
-	def build(self):
-		ShapeGroup.build(self)
-		self.getStartAndEndPoints()
-	def getStartAndEndPoints(self):
-		if self.subShapes[0].__class__.__name__ == 'Spiral':
-			startPoint = self.subShapes[0].p.lineStartPoint
-			startAngle = self.subShapes[0].p.lineStartAngle
-		else:
-			startPoint = self.subShapes[0].p.startPoint
-			startAngle = self.subShapes[0].p.startAngle
-		self.params['startPoint'] = startPoint
-		self.params['startAngle'] = startAngle
+
+	def calculate(self):
+		self.params['startPoint'] = self.subShapes[0].p.startPoint
+		self.params['startAngle'] = self.subShapes[0].p.startAngle
 		self.params['endPoint'] = self.subShapes[-1].p.endPoint
 		self.params['endAngle'] = self.subShapes[-1].p.endAngle
-		
-	def applyTransforms(self):
-		Shape.applyTransforms(self)
-		self.getStartAndEndPoints()
 
 class HolesOnArcChain(Shape):
 	def __init__(self, arcChain, *args):
 		Shape.__init__(self, *args)
 		self.addSubShape(arcChain)
-	def build(self, *args):
+		self.subShapes[0].updateParam('dontRenderSubShapes', True)
+
+	def calculate(self):
 		def calculateNextRadius(arcIndex, angleOnArc):
 			arc = arcs[arcIndex]
 			arcLengthUsed = sum([arcs[i].p.arcLength for i in range(currentArcIndex)])
@@ -523,11 +495,8 @@ class HolesOnArcChain(Shape):
 				distanceToNextHole = hypot(lastCenterPoint[0] - newCenterPoint[0], lastCenterPoint[1] - newCenterPoint[1])
 				error = 100. * (targetDistanceToNextHole - distanceToNextHole) / targetDistanceToNextHole
 				angle += 0.25
-			print 'angle'
-			print angle
 			return angle
 
-		Shape.build(self, *args)
 		arcs = self.subShapes[0].subShapes
 		totalArcLength = sum(arc.p.arcLength for arc in arcs)
 		currentArcIndex = 0
@@ -560,40 +529,28 @@ class HolesOnArcChain(Shape):
 			currentArcIndex += 1
 			if currentArcIndex < len(arcs):
 				currentAngleOnArc = transitionToNextArc(centerPoint, distanceToNextHole, currentArcIndex)
-	def addToDrawing(self, drawing):
-		self.subShapes[0].updateParam('dontRenderSubShapes', True)
-		Shape.addToDrawing(self, drawing)
 
 class ShapeChain(ShapeGroup):
 	def __init__(self, id, *shapesAndConnections):
 		ShapeGroup.__init__(self, id, *[s[0] for s in shapesAndConnections])
 		self.connections = [s[1] for s in shapesAndConnections]
-		self.pointNames = {'e' : 'endPoint', 's' : 'startPoint'}
-	def build(self):
-		ShapeGroup.build(self)
+
+	def calculate(self):
+		pointNames = {'e' : 'endPoint', 's' : 'startPoint'}
 		for i in range(1, len(self.connections)):
-			fromPointName = self.pointNames[self.connections[i-1][1]]
-			toPointName = self.pointNames[self.connections[i][0]]
+			fromPointName = pointNames[self.connections[i-1][1]]
+			toPointName = pointNames[self.connections[i][0]]
 			fromShape = self.subShapes[i-1]
 			toShape = self.subShapes[i]
-			print fromShape.params[fromPointName]
-			print toShape.params[toPointName]
 			transform = (
 				fromShape.params[fromPointName][0] - toShape.params[toPointName][0],
 				fromShape.params[fromPointName][1] - toShape.params[toPointName][1]
 			)
-			print transform
 			toShape.transform(distance=transform)
 			toShape.applyTransforms()
-		self.getStartAndEndPoints()
-
-	def getStartAndEndPoints(self):
-		chainStartPointName = self.pointNames[self.connections[0][0]]
-		chainEndPointName = self.pointNames[self.connections[-1][1]]
+		chainStartPointName = pointNames[self.connections[0][0]]
+		chainEndPointName = pointNames[self.connections[-1][1]]
 		self.params['startPoint'] = self.subShapes[0].params[chainStartPointName]
 		self.params['endPoint'] = self.subShapes[-1].params[chainEndPointName]
 
-	def applyTransforms(self):
-		Shape.applyTransforms(self)
-		self.getStartAndEndPoints()
 		

@@ -2,8 +2,8 @@
 from flask import Flask, request, jsonify, Response
 import json
 
-from modules.design import TestDesign
-design = TestDesign()
+from modules.design import *
+design = ThreeSidedThing()
 flaskApp = Flask(__name__,  static_folder='jsGui', static_url_path='/jsGui')
 
 @flaskApp.route('/')
