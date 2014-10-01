@@ -70,7 +70,7 @@ class TestDesign(Design):
 		holes = HolesOnArcChain(arcChain, {
 			'holeDistance' : 0.2, 
 			'holeRadii' : [0.125, 0.5, 1, 0.125],
-			'id' : 'holeChain'
+			# 'id' : 'holeChain'
 		})
 		endArc = Arc({
 			'startPoint' : (0, 0),
@@ -131,24 +131,30 @@ class ThreeSidedThing(Design):
 			'radius' : 'parent.arc0.radius',
 		}])
 		arcChainForHoles = ArcChain('arcChainForHoles', [{
-			'startAngle' : 280, 
-			'angleSpan' : 50, 
-			'centerPoint' : 'parent.parent.parent.oneEdge.arcChain.arc1.centerPoint',
-			'radius' : 5.8,
-			'reverse' : False,
+			'startAngle' : 'parent.parent.oneEdge.arcChain.arc2.startAngle+5', 
+			'endAngle' : 'parent.parent.oneEdge.arcChain.arc2.endAngle-5', 
+			'centerPoint' : 'parent.parent.oneEdge.arcChain.arc2.centerPoint',
+			'radius' : 'parent.parent.oneEdge.arcChain.arc2.radius-0.75',
+			'reverse' : True,
 			'changeableParams' : ['radius', 'startAngle', 'endAngle'],
 		},{
 			'angleSpan' : 60,
-			'radius' :2.2,
+			'radius' :4.5,
 			'changeableParams' : ['radius', 'angleSpan'],
 		},{
+			'angleSpan' : 25,
+			'radius' :2,
+			'changeableParams' : ['radius', 'angleSpan'],
+			'noDirectionAlternate' : True
+		},{
 			'angleSpan' : 50,
-			'radius' : 'parent.arc0.radius'
+			'radius' : 'parent.arc1.radius',
+			'prepend' : True
 		}])
 		holes = HolesOnArcChain(arcChainForHoles, {
 			'holeDistance' : 0.2, 
-			'holeRadii' : [0.125, 0.5, 0.0625, 0.5, 0.125],
-			'id' : 'holeChain'
+			'holeRadii' : [0.2, 0.4, 0.125, 0.4, 0.2],
+			# 'id' : 'holeChain'
 		})
 		endArc = Arc({
 			'startPoint' : (0, 0),

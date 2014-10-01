@@ -106,15 +106,23 @@ class Shape(object):
 		self.transforms = []
 		self.calculate()
 
-	def getCopy(self, topLevelCopy = True):
+	def getCopy(self, depth = 0, idChain = []):
 		newCopy = copy(self)
+		idChain = copy(idChain)
+		if self.p.id:
+			idChain.append(self.p.id)
+			depth += 1
 		for attr in ['params', 'transforms', 'timesCopied', 'primaryParams', 'derivedParams']:
 			setattr(newCopy, attr, deepcopy(getattr(self, attr)))
-		newCopy.subShapes = [s.getCopy(False) for s in self.subShapes]
+		newCopy.subShapes = [s.getCopy(depth, idChain) for s in self.subShapes]
 		newCopy.makeDataWrappers()
 		for shape in newCopy.subShapes:
 			shape.setParent(newCopy)
-		if self.p.id and topLevelCopy:
+		if self.p.changeableParams:
+			for paramKey in self.p.changeableParams:
+				paramChain = ['parent' for i in range(depth)] + idChain + [paramKey]
+				newCopy.params[paramKey] = '.'.join(paramChain)
+		if self.p.id and depth == 1:
 			self.timesCopied += 1
 			newCopy.params['id'] += str(self.timesCopied)
 		return newCopy
@@ -212,20 +220,22 @@ class Shape(object):
 		# print identifier
 		# print ''
 		if len(identifier) > 0:
-			id = identifier.pop(0)
-			if id == 'parent':
+			id = identifier[0]
+			if self.p.id:
+				identifier.pop(0)
+			if id == 'parent' or (not self.p.id and id == 'any'):
 				if self.parent:
-					if not identifier[0] == 'parent':
+					if not (identifier[0] == 'parent' or not self.p.id):
 						identifier.insert(0, 'any')
 					return self.parent.doParamSearch(identifier)
 				else:
 					print self.params
 					raise Exception('Param refers to parent, but shape has no parent')
-			if id in [self.p.id, 'any']:
-				if len(identifier) == 1:
+			if id in [self.p.id, 'any'] or not self.p.id:
+				if len(identifier) == 1 and self.p.id:
 					if identifier[0] in self.params.keys():
 						return self.params[identifier[0]]
-				elif len(identifier) > 1:
+				elif len(identifier) > 1 or not self.p.id:
 					for shape in self.subShapes:
 						result = shape.doParamSearch(identifier)
 						if result is not None:
@@ -292,6 +302,15 @@ class Arc(Shape):
 			endPoint = (centerPoint[0] + radius * cos(endAngleRads), centerPoint[1] + radius * sin(endAngleRads))
 			self.params['centerPoint'] = centerPoint
 			self.params['endPoint'] = endPoint
+		elif listContains(['endPoint', 'startAngle', 'radius', 'endAngle'], self.params.keys()):
+			endPoint = self.p.endPoint
+			startAngleRads = radians(self.p.startAngle)
+			endAngleRads = radians(self.p.endAngle)
+			radius = self.p.radius
+			centerPoint = (endPoint[0] - radius * cos(endAngleRads), endPoint[1] - radius * sin(endAngleRads))
+			startPoint = (centerPoint[0] + radius * cos(startAngleRads), centerPoint[1] + radius * sin(startAngleRads))
+			self.params['centerPoint'] = centerPoint
+			self.params['startPoint'] = startPoint
 		elif listContains(['centerPoint', 'radius', 'startAngle', 'endAngle'], self.params.keys()):
 			centerPoint = self.p.centerPoint
 			startAngleRads = radians(self.p.startAngle)
@@ -412,6 +431,7 @@ class Spiral(Shape):
 class ArcChain(ShapeGroup):
 	def __init__(self, id, definitions):
 		ShapeGroup.__init__(self,id)
+		indexForPrepends = 0
 		for i, definition in enumerate(definitions):
 			if 'growthFactorAdjustment' in definition.keys():
 				shape = Spiral(definition)
@@ -420,27 +440,49 @@ class ArcChain(ShapeGroup):
 			self.addSubShape(shape)
 			shape.updateParam('id', 'arc' + str(i))
 			if i > 0:
-				lastShape = self.subShapes[i-1]
+				if shape.p.prepend:
+					lastShape = self.subShapes[indexForPrepends]
+					indexForPrepends = i
+				else:
+					lastShape = self.subShapes[i-1]
 				if shape.p.noDirectionAlternate:
 					reverse = lastShape.p.reverse
 				else:
 					reverse = not lastShape.p.reverse
 				shape.updateParam('reverse', reverse)
 				if shape.p.type == 'Arc':
-					shape.updateParam('startPoint', '.'.join(['parent', lastShape.p.id, 'endPoint']))
 					if shape.p.noDirectionAlternate:
-						startAngleStr = 'endAngle'
+						angleChangeStr = ''
 					else:
-						startAngleStr = 'endAngle+180'
-					shape.updateParam('startAngle', '.'.join(['parent', lastShape.p.id, startAngleStr]))
-			if shape.p.type == 'Arc':
-				if shape.p.reverse:
-					endAngleStr = 'startAngle-' + str(shape.p.angleSpan)
+						angleChangeStr = '+180'
+					if shape.p.prepend:
+						shape.updateParam('endPoint', '.'.join(['parent', lastShape.p.id, 'startPoint']))
+						shape.updateParam('endAngle', '.'.join(['parent', lastShape.p.id, 'startAngle' + angleChangeStr]))
+					else:
+						shape.updateParam('startPoint', '.'.join(['parent', lastShape.p.id, 'endPoint']))
+						shape.updateParam('startAngle', '.'.join(['parent', lastShape.p.id, 'endAngle' + angleChangeStr]))
+			if shape.p.type == 'Arc' and shape.p.angleSpan:
+				if shape.p.prepend:
+					if shape.p.reverse:
+						startAngleStr = 'endAngle+' + str(shape.p.angleSpan)
+					else:
+						startAngleStr = 'endAngle-' + str(shape.p.angleSpan)
+					shape.updateParam('startAngle', '.'.join([shape.p.id, startAngleStr]))
 				else:
-					endAngleStr = 'startAngle+' + str(shape.p.angleSpan)
-				shape.updateParam('endAngle', '.'.join([shape.p.id, endAngleStr]))
+					if shape.p.reverse:
+						endAngleStr = 'startAngle-' + str(shape.p.angleSpan)
+					else:
+						endAngleStr = 'startAngle+' + str(shape.p.angleSpan)
+					shape.updateParam('endAngle', '.'.join([shape.p.id, endAngleStr]))
 
 	def calculate(self):
+		newSubShapes =  []
+		for shape in self.subShapes:
+			if shape.p.prepend:
+				newSubShapes = [shape] + newSubShapes
+			else:
+				newSubShapes.append(shape)
+		self.subShapes = newSubShapes
 		self.params['startPoint'] = self.subShapes[0].p.startPoint
 		self.params['startAngle'] = self.subShapes[0].p.startAngle
 		self.params['endPoint'] = self.subShapes[-1].p.endPoint
