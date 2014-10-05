@@ -151,11 +151,23 @@ class ThreeSidedThing(Design):
 			'radius' : 'parent.arc1.radius',
 			'prepend' : True
 		}])
+		spiral = Spiral({
+			'sweepStartAngle' : 45, 
+			'centerPoint' : (0,0), 
+			'sweepAngleSpan' : 420, 
+			'scaleFactor' : 0.25, 
+			'growthFactorAdjustment' : 1, 
+			'reverse' : True,
+			'id' : 'spiral'
+		})
+		group = ShapeGroup(False, spiral)
+		group.transform(distance = 'parent.arcChainForHoles.startPoint')
 		holes = HolesOnArcChain(arcChainForHoles, {
 			'holeDistance' : 0.2, 
 			'holeRadii' : [0.2, 0.4, 0.125, 0.4, 0.2],
 			# 'id' : 'holeChain'
 		})
+
 		endArc = Arc({
 			'startPoint' : (0, 0),
 			'startAngle' : 110,
@@ -170,8 +182,9 @@ class ThreeSidedThing(Design):
 			#'changeableParams' : ['radius'],
 			'id' : 'circle'
 		})
+
 		oneEdge = ShapeChain('oneEdge', (endArc, 'es'), (arcChain, 'se'))
-		oneSide = ShapeGroup('oneSide', oneEdge, circle, holes)
+		oneSide = ShapeGroup('oneSide', oneEdge, circle, holes, spiral)
 		sides = ShapeChain('sides', (oneSide, 'es'), (oneSide.getTransformedCopy(angle=120), 'es'), (oneSide.getTransformedCopy(angle=240), 'es'))
 		topShape = ShapeGroup('top', sides)
 		sides.s.b.s.b.updateParam('radius', 'parent.parent.oneSide.circle.radius*1.2')

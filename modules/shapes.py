@@ -2,6 +2,8 @@ from math import sin, cos, radians, pi, atan2, hypot, e, degrees, asin
 from copy import deepcopy, copy
 from dxfwrite import DXFEngine as dxf
 minLineSize = 0.1
+def isNumeric(s):
+	return all(c in "0123456789.+-" for c in s) and any(c in "0123456789" for c in s)
 
 
 def listContains(searchList, list):
@@ -150,47 +152,53 @@ class Shape(object):
 		self.params[param] = value
 
 	def prepareParamForMathOperation(self, param):
+		operands = [param]
 		operator = False
-		operand = False
 		for operatorToCheck in ['/', '*', '+', '-']:
 			if (not operator) and operatorToCheck in param:
 				operator = operatorToCheck
-				(param, operand) = param.split(operatorToCheck)
-		return (param, operator, operand)
+				operands = param.split(operatorToCheck)
+		return (operands, operator)
 
-	def doParamMathOperation(self, param, operator, operand):
+	def doParamMathOperation(self, operands, operator):
 		if operator:
-			if isinstance(param, tuple):
-				param = (self.doParamMathOperation(param[0], operator, operand), self.doParamMathOperation(param[1], operator, operand))
+			if isinstance(operands[0], tuple):
+				operands[0] = (self.doParamMathOperation([operands[0][0], operands[1][0]], operator), self.doParamMathOperation([operands[0][1], operands[1][1]], operator))
 			else:
-				operand = float(operand)
+				operands = [float(operand) for operand in operands]
 				if operator == '+':
-					param += operand
+					operands[0] += operands[1]
 				elif operator == '-':
-					param -= operand
+					operands[0] -= operands[1]
 				elif operator == '/':
-					param /= operand
+					operands[0] /= operands[1]
 				elif operator == '*':
-					param *= operand
-		return param
+					operands[0] *= operands[1]
+		return operands[0]
 
 	def getLinkedParams(self):
 		def processListOfParams(paramIds):
 			for paramId in paramIds:
 				if paramId not in ['id', 'type'] and isinstance(self.params[paramId], basestring):
-					result = self.prepareParamForMathOperation(self.params[paramId])
-					identifier = result[0].split('.')
-					if len(identifier) == 2:
-						if paramId not in selfReferencedParamKeys:
-							selfReferencedParamKeys.append(paramId)
-							continue
-					param = self.doParamSearch(identifier)
-					if param is None:
-						# print identifier
-						# print self.params
-						raise Exception('Error looking up param ' + '.'.join(identifier))
-					param = self.doParamMathOperation(param, result[1], result[2])
-					self.params[paramId] = param
+					skip = False
+					(operands, operator) = self.prepareParamForMathOperation(self.params[paramId])
+					for i in range(len(operands)):
+						if not isNumeric(operands[i]):
+							identifier = operands[i].split('.')
+							if len(identifier) == 2:
+								if paramId not in selfReferencedParamKeys:
+									selfReferencedParamKeys.append(paramId)
+									skip = True
+							if not skip:
+								param = self.doParamSearch(identifier)
+								if param is None:
+									# print identifier
+									# print self.params
+									raise Exception('Error looking up param ' + '.'.join(identifier))
+								operands[i] = param
+					if not skip:
+						param = self.doParamMathOperation(operands, operator)
+						self.params[paramId] = param
 		selfReferencedParamKeys = []
 		processListOfParams(self.params.keys())
 		processListOfParams(selfReferencedParamKeys)
@@ -199,14 +207,17 @@ class Shape(object):
 			newTransform = [self.transforms[i][0], self.transforms[i][1]] 
 			for j in range(2):
 				if isinstance(self.transforms[i][j], basestring):
-					result = self.prepareParamForMathOperation(self.transforms[i][j])
-					identifier = result[0].split('.')
-					param = self.doParamSearch(identifier)
-					if param is None:
-						print self.params
-						print identifier
-						raise Exception('Error looking up param ' + '.'.join(identifier))
-					newTransform[j] = self.doParamMathOperation(param, result[1], result[2])
+					(operands, operator) = self.prepareParamForMathOperation(self.transforms[i][j])
+					for k in range(len(operands)):
+						if not isNumeric(operands[k]):
+							identifier = operands[k].split('.')
+							param = self.doParamSearch(identifier)
+							if param is None:
+								print self.params
+								print identifier
+								raise Exception('Error looking up param ' + '.'.join(identifier))
+							operands[k] = param
+					newTransform[j] = self.doParamMathOperation(operands, operator)
 					changed = True
 			if changed:
 				self.transforms[i] = (newTransform[0], newTransform[1])
