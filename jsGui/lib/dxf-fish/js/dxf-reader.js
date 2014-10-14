@@ -112,7 +112,7 @@ var sections = [];
 
 function parse_dxf_header(Data){
 //console.log("parse Header")
-	//Probleme mit Zwei Werten für eine Variable -> alles durcheinander
+	//Probleme mit Zwei Werten fï¿½r eine Variable -> alles durcheinander
 //	dxf_header_vars = Array();
 //	for (var i= 0; i < Data.length; i = i+2){
 //		dxf_header_vars.push(Array(Data[i][1],Data[i+1][1]));
@@ -120,7 +120,7 @@ function parse_dxf_header(Data){
 	//console.log('parse header');
 }
 
-//Funktion der man einen Layernamen übergeben kann und die, die Layer_id zurückliefert. 
+//Funktion der man einen Layernamen ï¿½bergeben kann und die, die Layer_id zurï¿½ckliefert. 
 // Wenn es noch keine Layer mit dem Namen gibt wird eine erstellt.
 function layer(name){
 	var return_id = -1;
@@ -133,7 +133,7 @@ function layer(name){
 		var id = drawing.length;
 		layers[id] = {};
 		layers[id].id = id;
-		layers[id].name = name
+		layers[id].name = name;
 		layers[id].active = true;
 		drawing[layers[id].id] = [];
 		return_id = id;
@@ -168,7 +168,7 @@ function parse_dxf_entities(Data){
 	//Vom Anfang zum Ende
 	//0 Type
 	
-	// wenn Type = Polyline -> Unterentities bis SEQEND danach löschen bis 0 Type
+	// wenn Type = Polyline -> Unterentities bis SEQEND danach lï¿½schen bis 0 Type
 	//0 Type
 	//POLYLINES sind ein Problem!
 	var i = 0;
@@ -178,7 +178,7 @@ function parse_dxf_entities(Data){
 		//if (Data[0][0] != "0") console.log("Entities Error 1");
 		name = Data[i][1];
 		if (name == "SEQEND") in_polyline = false;
-		i++; //0 Type Zeile löschen
+		i++; //0 Type Zeile lï¿½schen
 		while ((i < Data.length) && (Data[i][0] != "0")){
 			temp_entity.push(Data[i]);
 			i++;
@@ -204,7 +204,7 @@ function parse_single_block(block_data){
 
 	new_block_data.pop();
 	//message_to_main('echo',new_block_data);
-	var this_block = {}
+	var this_block = {};
 	
 	this_block.handle = dxf_group_codes_parse(new_block_data[0]);
 	
@@ -221,7 +221,7 @@ function parse_dxf_tables(Data){
 }
 
 function parse_single_entity(entity_name, single_entity){
-	var fertig = dxf_group_codes_parse(single_entity)
+	var fertig = dxf_group_codes_parse(single_entity);
 	fertig.type = entity_name;
 
 
@@ -300,7 +300,7 @@ function dxf_group_codes_parse(daten){
 		}
 		if (daten[i][0] == "10" ){//x1
 			if (typeof fertig.x1 == "undefined")
-			fertig.x1 = parseFloat(daten[i][1])
+			fertig.x1 = parseFloat(daten[i][1]);
 			else if (typeof fertig.x1_extra == "undefined"){
 			fertig.x1_extra = [parseFloat(daten[i][1])];
 			}else{
@@ -312,7 +312,7 @@ function dxf_group_codes_parse(daten){
 		}
 		if (daten[i][0] == "20" ){ //y1
 			if (typeof fertig.y1 == "undefined")
-			fertig.y1 = parseFloat(daten[i][1])
+			fertig.y1 = parseFloat(daten[i][1]);
 			else if (typeof fertig.y1_extra == "undefined"){
 			fertig.y1_extra = [parseFloat(daten[i][1])];
 			}else{
@@ -344,7 +344,7 @@ function dxf_group_codes_parse(daten){
 			if (daten[i][1] == "1")
 			fertig.closed = true;
 		}
-		if (daten[i][0] == "71" ){ //Verknüpfungspunkt TOP: 1Left 2Center 3Right MIDDLE: 4L 5C 6R Bottom: 7L 8C 9R
+		if (daten[i][0] == "71" ){ //Verknï¿½pfungspunkt TOP: 1Left 2Center 3Right MIDDLE: 4L 5C 6R Bottom: 7L 8C 9R
 			fertig.attachment_p = daten[i][1];
 		}
 		//daten.shift();

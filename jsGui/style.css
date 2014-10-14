@@ -1,8 +1,8 @@
 body{
   font-family: Segoe UI,Helvetica,Arial,sans-serif;
 	height: 100%;
-	margin: 0px;
-	padding: 0px;
+	margin: 0;
+	padding: 0;
   background-color: #000000;
   font-size: 75%;
   color:#87CEEB;
@@ -15,15 +15,15 @@ body{
   font-variant:small-caps;
   font-size: 12px;
   margin:auto;
-  padding:0px;
+  padding:0;
   width:100%;
   max-width:120px;
 }
 .inputControlWrapper{
  height:100px;
  width:100px;
- margin:0px 10px 0px 10px;
- padding:0px;
+ margin:0 10px 0 10px;
+ padding:0;
  float:left;
 }
 .choiceInputItemLabel{
@@ -37,13 +37,13 @@ body{
   
 }
 .inputOutputWrapper{
-  margin: 120px 0px 10px 0px;
+  margin: 120px 0 10px 0;
   clear:both;
 }
 .inputSubOutputWrapper{
   width:120px;
-  margin: 0px 0px 0px 0px;
-  padding: 0px 0px 10px 0px;
+  margin: 0 0 0 0;
+  padding: 0 0 10px 0;
   float:left;
   border-top: 1px solid #87CEEB;
   background: #1f3036 ; 
@@ -62,8 +62,8 @@ body{
  }
 #fuckYouInTheEarCss{
   float:right;
-  margin:0px;
-  padding:0px;
+  margin:0;
+  padding:0;
   width:300px;
 }
 .sculptureHeading, .safeModeLabel{
@@ -85,12 +85,12 @@ body{
   width:100px;
 }
 .safeModeLabel span{
-  padding:0px !important;
+  padding:0 !important;
 }
 .pooferDisplayLabel, .enableControlLabel{
   width:15px;
   height:15px;
-  margin:0px -2px 0px 0px !important;
+  margin:0 -2px 0 0 !important;
 }
 .pooferDisplayLabel.ui-state-active{
   background: #FFCD4D !important; 

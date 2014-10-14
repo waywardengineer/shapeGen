@@ -26,9 +26,9 @@ function updateDisplay(){
 	if (currentStateData.drawingContents){
 		dxf_lesen(currentStateData.drawingContents);
 	}
-	inputHtml = ''
+	inputHtml = '';
 	paramIdNum = 0;
-	paramIds = []
+	paramIds = [];
 	$.each(currentStateData.params, function(paramId, paramData){
 		inputHtml += '<label for="' + paramIdNum + '">' + paramId + '</label><br><input id="' + paramIdNum + '" value=' + paramData + ' class="paramInput ui-widget  ui-widget-content ui-corner-all"><br>';
 		paramIds.push(paramId);
@@ -40,7 +40,7 @@ function updateDisplay(){
 	});
 }
 function doCommand(command){
-	commandStr = JSON.stringify(command)
+	commandStr = JSON.stringify(command);
 	$.ajax(settings.serverUrl + 'doCommand', {
 		data : commandStr,
 		contentType : 'application/json',

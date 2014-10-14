@@ -3,7 +3,7 @@ zahl = (Math.round(zahl * n_stelle) / n_stelle);
     return zahl;
 }
 
-//functionen aus reader --> müssen in gemeinsame Datei
+//functionen aus reader --> mï¿½ssen in gemeinsame Datei
 function layer(name){
 	var return_id = -1;
 	for (var t = 0; t < layers.length;t++){
@@ -15,7 +15,7 @@ function layer(name){
 		var id = drawing.length;
 		layers[id] = {};
 		layers[id].id = id;
-		layers[id].name = name
+		layers[id].name = name;
 		layers[id].active = true;
 		drawing[layers[id].id] = [];
 		return_id = id;
@@ -30,7 +30,7 @@ drawing = [];
 //Ein Assoziatives array  'Layer_name'->Layer_index
 layers = [];
 
-//Standartwerte, werden für den ersten Frame verwendet, dann autoscale und redraw
+//Standartwerte, werden fï¿½r den ersten Frame verwendet, dann autoscale und redraw
 view_scale = 12;
 
 //Variablen in denen die Dimension des Modells gespeichert werden
@@ -39,7 +39,7 @@ model_max_x = 0;
 model_min_y = 0;
 model_max_y = 0;
 model_x_center = 0;
-model_y_center = 0
+model_y_center = 0;
 //Bem ersten Frame soll hinterher die Skala und der Ursprung angepasst werden
 auto_scale = true;
 view_x = 300;
@@ -128,12 +128,12 @@ function do_auto_scale(){
 	ctx.stroke();
 	var width = model_max_x - model_min_x;
 	console.log('extents');
-	console.log(model_max_x)
-	console.log(model_min_x)
-	console.log(model_max_y)
-	console.log(model_min_y)
-	console.log(canvas.height)
-	console.log(canvas.width)
+	console.log(model_max_x);
+	console.log(model_min_x);
+	console.log(model_max_y);
+	console.log(model_min_y);
+	console.log(canvas.height);
+	console.log(canvas.width);
 	var x_scale_factor = canvas.width / width;
 	var height = model_max_y - model_min_y;
 	var y_scale_factor = canvas.height / height;
@@ -147,15 +147,15 @@ function do_auto_scale(){
 	model_y_center = model_min_y + ((model_max_y - model_min_y) / 2);
 	view_x = canvas.width / 2;
 	view_y = canvas.height / 2;
-	console.log(model_x_center)
-	console.log(model_y_center)
+	console.log(model_x_center);
+	console.log(model_y_center);
 	redraw();
 }
 
 function redraw(){
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 	ctx.strokeStyle = '#FFCD4D';
-	//Für jedes Layer
+	//Fï¿½r jedes Layer
 	//var i = 3;
 	draw_massstab();
 	for (var i = 0; drawing.length > i; i++){
@@ -168,7 +168,7 @@ function redraw(){
 }
 
 function add_layer_auswahl(){
-	var text = ""
+	var text = "";
 	for (var m = 0; m < layers.length;m++){
 		text = text + "<span class='layer submenuitem'><input type='checkbox' checked='checked' class='layer_auswahl' id='layer-"+m+"' value='"+layers[m].name+"' />"+layers[m].name.replace(/_/g," ")+"</span>";
 	}
@@ -181,10 +181,7 @@ function add_layer_auswahl(){
 	});
 	$('.layer_auswahl').change(function(e){
 		var layer_id = e.currentTarget.id.substr(6,(e.currentTarget.id.length-1));
-		if (layers[layer_id].active == true){
-		layers[layer_id].active = false;
-		}
-		else layers[layer_id].active = true;
+		layers[layer_id].active = layers[layer_id].active != true;
 		
 		redraw();
 	});
@@ -351,7 +348,7 @@ function draw_text(element){
 	}
 	var text = element.text.replace(/(\\f|\\H)[^;]+;/g,"");
 	var text = text.replace(/\\A1;/g,"");
-	var text = text.replace(/\\S2\^[\s]+;/g,"²");
+	var text = text.replace(/\\S2\^[\s]+;/g,"ï¿½");
 	var text = text.split(/\\P/);
 	//var text = element.text.split(/\\P/);
 	ctx.font = scale(element.radius) + "px Times New Roman";

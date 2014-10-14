@@ -58,6 +58,8 @@ class ListWrapper():
 
 		return False
 
+		
+
 
 class Shape(object):
 	def __init__(self, params):
@@ -71,12 +73,61 @@ class Shape(object):
 		self.primaryParams = params.keys()
 		self.derivedParams = []
 		self.params['type'] = self.__class__.__name__
-	def build(self):
+		self.paramsChecked = False
+		self.paramsResetting = False
+		
+	def build(self, topShape):
+		self.topShape = topShape
 		for subShape in self.subShapes:
-			subShape.build()
-		self.getLinkedParams()
+			subShape.build(topShape)
+		rejectedKeys = []
+		for key in self.params.keys():
+			if isinstance(self.params[key], basestring) and key not in ['id', 'type']:
+				(success, result) = self.getCalculatedParam(self.params[key])
+				if success:
+					self.params[key] = result
+				else:
+					rejectedKeys.append(key)
+		for key in rejectedKeys:
+			(success, result) = self.getCalculatedParam(self.params[key])
+			if success:
+				self.params[key] = result
+			else:
+				raise Exception("Can't find value " + self.params[key])
+		postponedTransforms = []
+		postponed = False
+		for i in range(len(self.transforms)):
+			changed = False
+			newTransform = [self.transforms[i][0], self.transforms[i][1]] 
+			for j in range(2):
+				if isinstance(self.transforms[i][j], basestring) and not postponed:
+					(success, result) = self.getCalculatedParam(self.transforms[i][j])
+					if success:
+						newTransform[j] = result
+						changed = True
+					else:
+						postponed = True
+						postponedTransforms = self.transforms[i:]
+						self.transforms = self.transforms[:i]
+			if changed and not postponed:
+				self.transforms[i] = (newTransform[0], newTransform[1])
 		self.applyTransforms()
-
+		self.transforms = postponedTransforms
+		for i in range(len(self.transforms)):
+			changed = False
+			newTransform = [self.transforms[i][0], self.transforms[i][1]] 
+			for j in range(2):
+				if isinstance(self.transforms[i][j], basestring):
+					(success, result) = self.getCalculatedParam(self.transforms[i][j])
+					if success:
+						newTransform[j] = result
+						changed = True
+					else:
+						raise Exception("Can't find value " + self.transforms[i][j])
+			if changed:
+				self.transforms[i] = (newTransform[0], newTransform[1])
+		self.applyTransforms()
+	
 	def makeDataWrappers(self):
 		self.p = DictWrapper(self.params)
 		self.s = ListWrapper(self.subShapes)
@@ -122,7 +173,7 @@ class Shape(object):
 			shape.setParent(newCopy)
 		if self.p.changeableParams:
 			for paramKey in self.p.changeableParams:
-				paramChain = ['parent' for i in range(depth)] + idChain + [paramKey]
+				paramChain = idChain + [paramKey]
 				newCopy.params[paramKey] = '.'.join(paramChain)
 		if self.p.id and depth == 1:
 			self.timesCopied += 1
@@ -163,7 +214,10 @@ class Shape(object):
 	def doParamMathOperation(self, operands, operator):
 		if operator:
 			if isinstance(operands[0], tuple):
-				operands[0] = (self.doParamMathOperation([operands[0][0], operands[1][0]], operator), self.doParamMathOperation([operands[0][1], operands[1][1]], operator))
+				if isinstance(operands[1], tuple):
+					operands[0] = (self.doParamMathOperation([operands[0][0], operands[1][0]], operator), self.doParamMathOperation([operands[0][1], operands[1][1]], operator))
+				else:
+					operands[0] = (self.doParamMathOperation([operands[0][0], operands[1]], operator), self.doParamMathOperation([operands[0][1], operands[1]], operator))
 			else:
 				operands = [float(operand) for operand in operands]
 				if operator == '+':
@@ -176,82 +230,69 @@ class Shape(object):
 					operands[0] *= operands[1]
 		return operands[0]
 
-	def getLinkedParams(self):
-		def processListOfParams(paramIds):
-			for paramId in paramIds:
-				if paramId not in ['id', 'type'] and isinstance(self.params[paramId], basestring):
-					skip = False
-					(operands, operator) = self.prepareParamForMathOperation(self.params[paramId])
-					for i in range(len(operands)):
-						if not isNumeric(operands[i]):
-							identifier = operands[i].split('.')
-							if len(identifier) == 2:
-								if paramId not in selfReferencedParamKeys:
-									selfReferencedParamKeys.append(paramId)
-									skip = True
-							if not skip:
-								param = self.doParamSearch(identifier)
-								if param is None:
-									# print identifier
-									# print self.params
-									raise Exception('Error looking up param ' + '.'.join(identifier))
-								operands[i] = param
-					if not skip:
-						param = self.doParamMathOperation(operands, operator)
-						self.params[paramId] = param
-		selfReferencedParamKeys = []
-		processListOfParams(self.params.keys())
-		processListOfParams(selfReferencedParamKeys)
-		for i in range(len(self.transforms)):
-			changed = False
-			newTransform = [self.transforms[i][0], self.transforms[i][1]] 
-			for j in range(2):
-				if isinstance(self.transforms[i][j], basestring):
-					(operands, operator) = self.prepareParamForMathOperation(self.transforms[i][j])
-					for k in range(len(operands)):
-						if not isNumeric(operands[k]):
-							identifier = operands[k].split('.')
-							param = self.doParamSearch(identifier)
-							if param is None:
-								print self.params
-								print identifier
-								raise Exception('Error looking up param ' + '.'.join(identifier))
-							operands[k] = param
-					newTransform[j] = self.doParamMathOperation(operands, operator)
-					changed = True
-			if changed:
-				self.transforms[i] = (newTransform[0], newTransform[1])
+	def getCalculatedParam(self, param):
+		success = True
+		result = False
+		(operands, operator) = self.prepareParamForMathOperation(param)
+		for i in range(len(operands)):
+			if not isNumeric(operands[i]):
+				identifier = operands[i].split('.')
+				param = self.doParamSearch(identifier)
+				if param is None:
+					success = False
+				elif isinstance(param, basestring):
+					success = False
+				else:
+					operands[i] = param
+		if success:
+			result = self.doParamMathOperation(operands, operator)
+		return (success, result)
+
 	def calculate(self):
 		pass
 
+	def clearParamCheckState(self):
+		self.paramsChecked = False
+		for shape in self.subShapes:
+			shape.clearParamCheckState()
 	def doParamSearch(self, identifier):
+		self.topShape.clearParamCheckState()
 		identifier = deepcopy(identifier)
-		# print ''
-		# print self.params
-		# print identifier
-		# print ''
-		if len(identifier) > 0:
-			id = identifier[0]
-			if self.p.id:
-				identifier.pop(0)
-			if id == 'parent' or (not self.p.id and id == 'any'):
-				if self.parent:
-					if not (identifier[0] == 'parent' or not self.p.id):
-						identifier.insert(0, 'any')
-					return self.parent.doParamSearch(identifier)
+		result = self.doParamSubsearch(identifier, False, 0)
+		return result[0]
+
+	def doParamSubsearch(self, identifier, downOnly, distance):
+		if self.paramsChecked:
+			return (None, distance)
+		self.paramsChecked = True
+		if len(identifier) == 1:
+			if identifier[0] in self.params.keys():
+				return (self.params[identifier[0]], distance)
+			else:
+				return (None, distance)
+		if len(identifier) == 2:
+			if identifier[0] == self.p.id:
+				if identifier[1] in self.params.keys():
+					return (self.params[identifier[1]], distance)
 				else:
-					print self.params
-					raise Exception('Param refers to parent, but shape has no parent')
-			if id in [self.p.id, 'any'] or not self.p.id:
-				if len(identifier) == 1 and self.p.id:
-					if identifier[0] in self.params.keys():
-						return self.params[identifier[0]]
-				elif len(identifier) > 1 or not self.p.id:
-					for shape in self.subShapes:
-						result = shape.doParamSearch(identifier)
-						if result is not None:
-							return result
-		return None
+					return (None, distance)
+		results = []
+		if len(identifier) > 2:
+			if identifier[0] == self.p.id:
+				downOnly = True
+				identifier = identifier[1:]
+		for shape in self.subShapes:
+			results.append(shape.doParamSubsearch(identifier, downOnly, distance + 1))
+		if (not downOnly) and self.parent:
+			results.append(self.parent.doParamSubsearch(identifier, False, distance + 1))
+		bestResultDistance = distance
+		bestResult = None
+		for result in results:
+			if result[0] is not None:
+				if bestResult is None or result[1] < bestResultDistance:
+					(bestResult, bestResultDistance) = result
+		return (bestResult, bestResultDistance)
+				
 
 	def setParent(self, parent):
 		self.parent = parent
@@ -269,10 +310,10 @@ class ShapeGroup(Shape):
 				shape.setParent(self)
 	def calculate(self):
 		Shape.calculate(self)
-		self.params['startPoint'] = self.subShapes[0].p.startPoint
-		self.params['endPoint'] = self.subShapes[0].p.endPoint
-		self.params['startAngle'] = self.subShapes[0].p.startAngle
-		self.params['endAngle'] = self.subShapes[0].p.endAngle
+		# self.params['startPoint'] = self.subShapes[0].p.startPoint
+		# self.params['endPoint'] = self.subShapes[0].p.endPoint
+		# self.params['startAngle'] = self.subShapes[0].p.startAngle
+		# self.params['endAngle'] = self.subShapes[0].p.endAngle
 
 class Circle(Shape):
 	def addToDrawing(self, drawing):
@@ -294,7 +335,7 @@ class Arc(Shape):
 			centerPoint = (startPoint[0] - radius * cos(startAngleRads), startPoint[1] - radius * sin(startAngleRads))
 			endAngleRads = atan2(endPoint[1] - centerPoint[1], endPoint[0] - centerPoint[0])
 			centerEndDist = hypot(centerPoint[0] - endPoint[0], centerPoint[1] - endPoint[1])
-			if not (radius * 0.95 < centerEndDist and radius * 1.05 > centerEndDist):
+			if not (radius * 0.95 < centerEndDist < 1.05 * radius):
 				startAngleRads += pi
 				triangleAngleRads = startAngleRads - adjacentAngleRads
 				radius = hypot(*rightTriangleCornerOffset) / abs(cos(triangleAngleRads))
@@ -467,24 +508,24 @@ class ArcChain(ShapeGroup):
 					else:
 						angleChangeStr = '+180'
 					if shape.p.prepend:
-						shape.updateParam('endPoint', '.'.join(['parent', lastShape.p.id, 'startPoint']))
-						shape.updateParam('endAngle', '.'.join(['parent', lastShape.p.id, 'startAngle' + angleChangeStr]))
+						shape.updateParam('endPoint', '.'.join([lastShape.p.id, 'startPoint']))
+						shape.updateParam('endAngle', '.'.join([lastShape.p.id, 'startAngle' + angleChangeStr]))
 					else:
-						shape.updateParam('startPoint', '.'.join(['parent', lastShape.p.id, 'endPoint']))
-						shape.updateParam('startAngle', '.'.join(['parent', lastShape.p.id, 'endAngle' + angleChangeStr]))
+						shape.updateParam('startPoint', '.'.join([lastShape.p.id, 'endPoint']))
+						shape.updateParam('startAngle', '.'.join([lastShape.p.id, 'endAngle' + angleChangeStr]))
 			if shape.p.type == 'Arc' and shape.p.angleSpan:
 				if shape.p.prepend:
 					if shape.p.reverse:
 						startAngleStr = 'endAngle+' + str(shape.p.angleSpan)
 					else:
 						startAngleStr = 'endAngle-' + str(shape.p.angleSpan)
-					shape.updateParam('startAngle', '.'.join([shape.p.id, startAngleStr]))
+					shape.updateParam('startAngle', startAngleStr)
 				else:
 					if shape.p.reverse:
 						endAngleStr = 'startAngle-' + str(shape.p.angleSpan)
 					else:
 						endAngleStr = 'startAngle+' + str(shape.p.angleSpan)
-					shape.updateParam('endAngle', '.'.join([shape.p.id, endAngleStr]))
+					shape.updateParam('endAngle', endAngleStr)
 
 	def calculate(self):
 		newSubShapes =  []
@@ -556,7 +597,7 @@ class HolesOnArcChain(Shape):
 			angle = 0.
 			error = 100
 			lastError = 200
-			while error > 5 and error < lastError:
+			while 5 < error < lastError:
 				lastError = error
 				newCenterPoint = getCenterPoint(newArcIndex, angle)
 				distanceToNextHole = hypot(lastCenterPoint[0] - newCenterPoint[0], lastCenterPoint[1] - newCenterPoint[1])
@@ -585,7 +626,7 @@ class HolesOnArcChain(Shape):
 				}))
 				error = 100
 				lastError = 200
-				while error > 5 and error < lastError:
+				while 5 < error < lastError:
 					distanceToNextHole = self.p.holeDistance + (thisRadius + nextRadius)
 					angleIncrement = calculateNextAngleIncrement(currentArcIndex, currentAngleOnArc, distanceToNextHole)
 					newNextRadius = calculateNextRadius(currentArcIndex, currentAngleOnArc + angleIncrement)
