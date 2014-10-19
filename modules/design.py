@@ -177,22 +177,17 @@ class NewDesign(Design):
 		},{
 			'angleSpan' : 60,
 			'radius' :4,
-			# 'noDirectionAlternate' : True
-		# },{
-			# 'angleSpan' : 60,#center
-			# 'radius' : 3
 		}])
-		circle = Circle({
-			'centerPoint' : 'side.inner.arc2.centerPoint',
-			'radius' : 5
-		})
-		circle.transform(distance = (0.25, 0.75))
 		side = ShapeGroup('side', inner, outer)
-		side.params['startPoint'] = 'outer.endPoint'
-		side.params['endPoint'] = 'inner.endPoint'
+		side.p.startPoint = 'outer.endPoint'
+		side.p.endPoint = 'inner.endPoint'
 		side2 = side.getTransformedCopy(angle = 120)
 		side3 = side.getTransformedCopy(angle = 240)
 		sides = ShapeChain('sides', (side, 'se'), (side2, 'se'), (side3, 'se'))
+		circle = Circle({
+			'centerPoint' : 'avgPoints ( side.inner.arc2.centerPoint , side1.inner.arc2.centerPoint , side2.inner.arc2.centerPoint )',
+			'radius' : 5
+		})
 		topShape = ShapeGroup('top', sides, circle)
 		self.shapes.append(topShape)
 		Design.build(self)
