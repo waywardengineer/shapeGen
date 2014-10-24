@@ -5,7 +5,7 @@ import json
 def interpolate(factor, limits):
 	return limits[0] + factor * (limits[1] - limits[0])
 
-class Nautilus2(Design):
+class Nautilus3(Design):
 	def build(self):
 		self.shapes = []
 		spirals = ShapeGroup('apirals')
@@ -51,23 +51,41 @@ class Nautilus2(Design):
 				'reverse' : False,
 				'endPoint' : 'innerSpiral.startPoint'
 			})
-			segment = ShapeGroup('segment' + str(i), innerSpiral, outerSpiral, lArc, rArc)
+			holeSpiral = Spiral({
+				'rotationAngle' : 0,
+				'sweepStartAngle' : startAngle + 5,
+				'centerPoint' : (0, 0),
+				'scaleFactor' : interpolate(0.57, (innerScaleFactor, outerScaleFactor)),
+				'growthFactorAdjustment' : interpolate(0.57, (innerGrowthFactor, outerGrowthFactor)),
+				'sweepAngleSpan' : angleSpan - 10,
+				'reverse' : True,
+				'id' : 'holeSpiral'
+			})
+			lowerRadius = 0.25 * (outerSpiral.getRadius(startAngle) - innerSpiral.getRadius(startAngle))
+			upperRadius = 0.25 * (outerSpiral.getRadius(startAngle + angleSpan) - innerSpiral.getRadius(startAngle + angleSpan))
+			holes = HolesOnArcChain(ShapeGroup('holeSpiralGroup', holeSpiral), {
+				'holeDistance' : 0.24 - (startAngle/3000)**1.8, 
+				'holeRadii' : [lowerRadius, upperRadius],
+				'minRadius' : 0.055,
+				'id' : 'holes'
+			})
+			segment = ShapeGroup('segment' + str(i), innerSpiral, outerSpiral, holes, lArc, rArc)
 			spirals.addSubShape(segment)
 		i = 0
-		while i < 6:
+		while i < 12:
 			makeSegment(0, 1, i * spiralInterval, spiralAngleSpan)
 			i += 1
-		makeSegment(0.52, 1, i * spiralInterval, (spiralAngleSpan / 2) - spiralSpacing)
-		while i < 8:
-			makeSegment(0, 0.5, i * spiralInterval, spiralAngleSpan)
-			makeSegment(0.52, 1, i * spiralInterval + spiralAngleSpan / 2, spiralAngleSpan)
-			i += 1
-		makeSegment(0.77, 1, i * spiralInterval + spiralAngleSpan / 2, (spiralAngleSpan / 2) - spiralSpacing)
-		while i < 10:
-			makeSegment(0, 0.5, i * spiralInterval, spiralAngleSpan)
-			makeSegment(0.52, 0.75, i * spiralInterval + spiralAngleSpan / 2, spiralAngleSpan)
-			makeSegment(0.77, 1, i * spiralInterval + spiralAngleSpan, spiralAngleSpan)
-			i += 1
+		# makeSegment(0.52, 1, i * spiralInterval, (spiralAngleSpan / 2) - spiralSpacing)
+		# while i < 8:
+			# makeSegment(0, 0.5, i * spiralInterval, spiralAngleSpan)
+			# makeSegment(0.52, 1, i * spiralInterval + spiralAngleSpan / 2, spiralAngleSpan)
+			# i += 1
+		# makeSegment(0.77, 1, i * spiralInterval + spiralAngleSpan / 2, (spiralAngleSpan / 2) - spiralSpacing)
+		# while i < 10:
+			# makeSegment(0, 0.5, i * spiralInterval, spiralAngleSpan)
+			# makeSegment(0.52, 0.75, i * spiralInterval + spiralAngleSpan / 2, spiralAngleSpan)
+			# makeSegment(0.77, 1, i * spiralInterval + spiralAngleSpan, spiralAngleSpan)
+			# i += 1
 		topShape = ShapeGroup('top', spirals)
 		self.shapes.append(topShape)
 		Design.build(self)

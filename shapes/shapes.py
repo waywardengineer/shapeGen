@@ -1,329 +1,9 @@
 from math import sin, cos, radians, pi, atan2, hypot, e, degrees, asin
 from copy import deepcopy, copy
 from dxfwrite import DXFEngine as dxf
-minLineSize = 0.1
-def isNumeric(s):
-	return all(c in "0123456789.+-" for c in s) and any(c in "0123456789" for c in s)
+from shapeUtils import *
+from shapeBases import *
 
-
-def listContains(searchList, list):
-	match = True
-	for item in searchList:
-		if not item in list:
-			match = False
-	return match
-
-def polarToCartesian(point):
-	angle = radians(point[0])
-	return (cos(angle) * point[1], sin(angle) * point[1])
-
-def transformPoint(point, angle = 0, distance = (0, 0)):
-	point = (point[0] + distance[0], point[1] + distance[1])
-	currentAngle = atan2(point[1], point[0])
-	radius = hypot(*point)
-	newAngle = currentAngle + radians(angle)
-	point = (cos(newAngle) * radius, sin(newAngle) * radius)
-	return point
-
-def distanceBetween(point1, point2):
-	return hypot(point1[0] - point2[0], point1[1] - point2[1])
-
-def addVectors(point1, point2):
-	return (point1[0] + point2[0], point1[1] + point2[1])
-
-def interpolate(value, pair1, pair2):
-	return pair1[1] + (pair2[1] - pair1[1]) * ((value - pair1[0]) / (pair2[0] - pair1[0]))
-
-def avgPoints (*points):
-	result = [sum([points[i][j] for i in range(len(points))]) / len(points) for j in range(len(points[0]))] 
-	return tuple(result)
-	
-	
-class DictWrapper():
-	def __init__(self, dictObj):
-		self._dictObj = dictObj
-	def __getattr__(self, item):
-		if item not in ['_dictObj']:
-			if item in self._dictObj.keys():
-				data = self._dictObj[item]
-				if isinstance(data, dict):
-					return DictWrapper(self._dictObj[item])
-				else:
-					return data
-		return False
-class ListWrapper():
-	def __init__(self, listObj):
-		self._listObj = listObj
-	def __getattr__(self, item):
-		if item not in ['_dictObj']:
-			if len(item) == 1:
-				index = ord(item) - 97
-				if index < len(self._listObj):
-					return self._listObj[index]
-		return False
-
-
-class Param(object):
-	def __init__(self, value, type = float):
-		self.value = value
-		self.resolved = isinstance(value, type)
-		self.type = type
-	def resolve(self, parent):
-		if not self.resolved:
-			success = True
-			if isinstance(self.value, tuple):
-				newValues = []
-				for value in self.value:
-					if isinstance(value, basestring):
-						newSuccess, value = self.getParamVal(value, parent)
-						success = newSuccess and success
-					newValues.append(value)
-				if success:
-					self.value = tuple(newValues)
-			else:
-				if isinstance(self.value, basestring):
-					success, value = self.getParamVal(self.value, parent)
-					if success:
-						self.value = value
-			self.resolved = success
-		return self.resolved
-
-	def getParamVal(self, paramString, parent):
-		parts = paramString.split(' ')
-		error = False
-		value = 0
-		for i in range(len(parts)):
-			part = parts[i]
-			if part not in ['(', ')', '+', '-', '*', '/', ',', 'avgPoints', 'distanceBetween'] and not isNumeric(part):
-				identifier = part.split('.')
-				result = parent.doParamSearch(identifier)
-				if result is None or isinstance(result, basestring):
-					error = True
-				else:
-					parts[i] = str(result)
-		if not error:
-			paramString = ''.join(parts)
-			value = eval(paramString)
-		return (not error, value)
-
-class Params(dict):
-	def __init__(self, parent, params):
-		dict.__init__(self)
-		self.resolved = False
-		self.dir = dir(self)
-		self.parent = parent
-		for key in params.keys():
-			self.__setattr__(key, params[key])
-	def resolve(self):
-		pendingKeys = self.keys()
-		numPendingKeys = len(pendingKeys)
-		finished = False
-		while not finished:
-			newPendingKeys = []
-			for key in pendingKeys:
-				if not self[key].resolve(self.parent):
-					newPendingKeys.append(key)
-			newNumPendingKeys = len(newPendingKeys)
-			finished = newNumPendingKeys == 0 or newNumPendingKeys == numPendingKeys
-			pendingKeys = newPendingKeys
-			numPendingKeys = newNumPendingKeys
-		self.resolved = numPendingKeys == 0
-	def __getattr__(self, item):
-		if item not in ['resolved', 'dir', 'parent'] and item not in self.dir:
-			if item in self.keys():
-				return self[item].value
-			else:
-				return False
-	def __setattr__(self, item, value):
-		if item not in ['resolved', 'dir', 'parent'] and item not in self.dir:
-			if item in ['id', 'type']:
-				type = basestring
-			elif item in ['reverse']:
-				type = bool
-			else:
-				type = float
-			self[item] = Param(value, type)
-		else:
-			dict.__setattr__(self, item, value)
-	def getCopy(self, newParent):
-		return Params(newParent, {k: self[k].value for k in self.keys()})
-	def printValues(self):
-		values = {k : self[k].value for k in self.keys()}
-		print values
-	
-
-class Transforms(list):
-	def __init__(self, parent, *args, **kwargs):
-		list.__init__(self, *args, **kwargs)
-		self.resolved = False
-		self.parent = parent
-	def resolve(self):
-		foundUnresolvable = False
-		i = 0
-		if len(self) > 0:
-			while not foundUnresolvable and i < len(self):
-				if self[i][0] and not self[i][0].resolve(self.parent):
-					foundUnresolvable = True
-				if self[i][1] and not self[i][1].resolve(self.parent):
-					foundUnresolvable = True
-				i += 1
-		self.resolved = not foundUnresolvable
-	def getCopy(self, newParent):
-		return Transforms(newParent, [(Param(self[i][0].value), Param(self[i][1].value)) for i in range(len(self))])
-	def printValues(self):
-		values = [(t[0].value, t[1].value) for t in self]
-		print values
-class Shape(object):
-	def __init__(self, params):
-		self.p = Params(self, params)
-		self.transforms = Transforms(self)
-		self.subShapes = []
-		self.parent = False
-		self.timesCopied = 0
-		self.p.type = self.__class__.__name__
-		self.pChecked = False
-		self.error = False
-		
-	def build(self, topShape):
-		self.topShape = topShape
-		for subShape in self.subShapes:
-			subShape.build(topShape)
-		rejectedKeys = []
-		self.p.resolve()
-		if not self.p.resolved:
-			raise Exception("error finding param")
-		self.transforms.resolve()
-		self.applyResolvedTransforms()
-		if not self.transforms.resolved:
-			self.transforms.resolve()
-			if not self.transforms.resolved:
-				self.transforms.printValues()
-				raise Exception("error finding distance transform")
-			self.applyResolvedTransforms()
-
-	def addToDrawing(self, drawing, layer='0'):
-		if not self.p.dontRenderSubShapes:
-			for subShape in self.subShapes:
-				subShape.addToDrawing(drawing, layer)
-
-	def transform(self, angle = 0, distance = (0, 0)):
-		self.transforms.append((Param(angle), Param(distance)))
-
-	def applyResolvedTransforms(self):
-		foundUnresolved = False
-		while len(self.transforms) > 0 and not foundUnresolved:
-			if self.transforms[0][0].resolved and self.transforms[0][1].resolved:
-				transform = self.transforms.pop(0)
-				for subShape in self.subShapes:
-					subShape.transforms.append(transform)
-					subShape.applyResolvedTransforms()
-				angle = transform[0].value
-				distance = transform[1].value
-				for key in ['startPoint', 'endPoint', 'centerPoint']:
-					if key in self.p.keys():
-						self.updateParam(key, transformPoint(self.p[key].value, angle, distance))
-				for key in ['startAngle', 'endAngle', 'rotationAngle']:
-					if key in self.p.keys():
-						self.updateParam(key, self.p[key].value + angle)
-			else:
-				foundUnresolved = True
-		self.calculate()
-
-	def getCopy(self, depth = 0, idChain = []):
-		newCopy = copy(self)
-		idChain = copy(idChain)
-		if self.p.id:
-			idChain.append(self.p.id)
-			depth += 1
-		newCopy.p = self.p.getCopy(newCopy)
-		newCopy.transforms = self.transforms.getCopy(newCopy)
-		newCopy.subShapes = [s.getCopy(depth, idChain) for s in self.subShapes]
-		for shape in newCopy.subShapes:
-			shape.setParent(newCopy)
-		if self.p.changeableParams:
-			for paramKey in self.p.changeableParams:
-				paramChain = idChain + [paramKey]
-				newCopy.updateParam(paramKey, '.'.join(paramChain))
-		if self.p.id and depth == 1:
-			self.timesCopied += 1
-			newCopy.p.id = newCopy.p.id + str(self.timesCopied)
-		return newCopy
-
-	def getTransformedCopy(self, angle = 0, distance = (0, 0)):
-		newCopy = self.getCopy()
-		newCopy.transform(angle, distance)
-		return newCopy
-
-	def getParamDirectory(self):
-		data = []
-		for subShape in self.subShapes:
-			data += subShape.getParamDirectory()
-		if self.p.id:
-			for item in data:
-				item['id'] = self.p.id + '.' + item['id']
-			if self.p.changeableParams:
-				changeableParamsData = {k : self.p[k] for k in self.p.changeableParams}
-			else:
-				changeableParamsData = {}
-			data.append({'id' : self.p.id, 'changeableParams' : changeableParamsData, 'object' : self})
-		return data
-
-	def updateParam(self, param, value):
-		self.p.__setattr__(param, value)
-
-
-	def calculate(self):
-		pass
-
-	def clearParamCheckState(self):
-		self.pChecked = False
-		for shape in self.subShapes:
-			shape.clearParamCheckState()
-	def doParamSearch(self, identifier):
-		self.topShape.clearParamCheckState()
-		identifier = deepcopy(identifier)
-		result = self.doParamSubsearch(identifier, False, 0)
-		return result[0]
-
-	def doParamSubsearch(self, identifier, downOnly, distance):
-		if self.pChecked:
-			return (None, distance)
-		self.pChecked = True
-		if len(identifier) == 1:
-			if identifier[0] in self.p.keys():
-				return (self.p[identifier[0]].value, distance)
-			else:
-				return (None, distance)
-		if len(identifier) == 2:
-			if identifier[0] == self.p.id:
-				if identifier[1] in self.p.keys():
-					return (self.p[identifier[1]].value, distance)
-				else:
-					return (None, distance)
-		results = []
-		if len(identifier) > 2:
-			if identifier[0] == self.p.id:
-				downOnly = True
-				identifier = identifier[1:]
-		for shape in self.subShapes:
-			results.append(shape.doParamSubsearch(identifier, downOnly, distance + 1))
-		if (not downOnly) and self.parent:
-			results.append(self.parent.doParamSubsearch(identifier, False, distance + 1))
-		bestResultDistance = distance
-		bestResult = None
-		for result in results:
-			if result[0] is not None:
-				if bestResult is None or result[1] < bestResultDistance:
-					(bestResult, bestResultDistance) = result
-		return (bestResult, bestResultDistance)
-				
-
-	def setParent(self, parent):
-		self.parent = parent
-
-	def addSubShape(self, shape):
-		self.subShapes.append(shape)
-		shape.setParent(self)
 
 class ShapeGroup(Shape):
 	def __init__(self, id, *shapes):
@@ -341,6 +21,11 @@ class Circle(Shape):
 		circle = dxf.circle(self.p.radius, self.p.centerPoint, layer=layer)
 		drawing.add(circle)
 
+class Line(Shape):
+	def addToDrawing(self, drawing, layer='0'):
+		Shape.addToDrawing(self, drawing, layer)
+		line = dxf.line(self.p.startPoint, self.p.endPoint, layer=layer)
+		drawing.add(line)
 
 class Arc(Shape):
 	def calculate(self, *args): #takes [startPoint, startAngle, endPoint] or [startPoint, startAngle, radius, endAngle] or [centerPoint, radius, startAngle, endAngle]
@@ -454,58 +139,7 @@ class BezCurve(Shape):
 			self.p['points'] = newPoints
 
 
-class Spiral(Shape):
-	def getRadius(self, angleFromStart):
-		b = 0.0053468
-		radius = self.p.scaleFactor * pow(e, b * self.p.growthFactorAdjustment * angleFromStart)
-		return radius
 
-	def calculate(self, *args): 
-		if self.p.sweepStartAngle:
-			angleFromStart = self.p.sweepStartAngle
-		else:
-			angleFromStart = 0
-		self.p.sweepEndAngle = angleFromStart + self.p.sweepAngleSpan
-		self.points = []
-		self.arcLengthLookup = []
-		if self.p.reverse:
-			direction = -1
-		else:
-			direction = 1
-		arcLength = 0
-		finished = False
-		while not finished:
-			if angleFromStart > self.p.sweepEndAngle:
-				angleFromStart = self.p.sweepEndAngle
-			finished = angleFromStart >= self.p.sweepEndAngle
-			radius = self.getRadius(angleFromStart)
-			if not ('minRadius' in self.p.keys() and radius < self.p.minRadius):
-				pointInPolar = (self.p.rotationAngle + direction * angleFromStart, radius)
-				point = addVectors(polarToCartesian(pointInPolar), self.p.centerPoint)
-				if len(self.points) > 0:
-					arcLength += distanceBetween(point, self.points[-1])
-					self.arcLengthLookup.append((angleFromStart, arcLength))
-				self.points.append(point)
-			angleFromStart += minLineSize / (sin(radians(1)) * radius)
-		self.p.arcLength = arcLength
-		self.p.endPoint = self.points[-1]
-		self.p.endAngle = degrees(atan2(self.points[-1][1] - self.points[-2][1], self.points[-1][0] - self.points[-2][0])) + 90
-		self.p.startPoint = self.points[0]
-		self.p.startAngle = degrees(atan2(self.points[0][1] - self.points[1][1], self.points[0][0] - self.points[1][0])) + 90
-
-	def lookupArcLength(self, angleFromStart):
-		result = [i for i, v in enumerate(self.arcLengthLookup) if v[0] < angleFromStart]
-		if len(result) == 0:
-			return 0
-		elif len(result) == len(self.arcLengthLookup):
-			return self.p.arcLength
-		else:
-			return interpolate(angleFromStart, self.arcLengthLookup[result[-1]], self.arcLengthLookup[result[-1] + 1]) 
-			
-	def addToDrawing(self, drawing, layer='0'):
-		for i in range(1, len(self.points)):
-			line = dxf.line(self.points[i-1], self.points[i], layer=layer)
-			drawing.add(line)
 
 
 class ArcChain(ShapeGroup):
@@ -568,110 +202,7 @@ class ArcChain(ShapeGroup):
 		self.p.endPoint = self.subShapes[-1].p.endPoint
 		self.p.endAngle = self.subShapes[-1].p.endAngle
 
-class HolesOnArcChain(Shape):
-	def __init__(self, arcChain, *args):
-		Shape.__init__(self, *args)
-		self.addSubShape(arcChain)
-		self.subShapes[0].updateParam('dontRenderSubShapes', True)
 
-	def calculate(self):
-		def calculateNextRadius(arcIndex, angleOnArc):
-			arc = arcs[arcIndex]
-			arcLengthUsed = sum([arcs[i].p.arcLength for i in range(currentArcIndex)])
-			if arc.p.type == 'Arc':
-				arcLengthUsed += (angleOnArc / arc.p.angleSpan) * arc.p.arcLength
-			elif arc.p.type == 'Spiral':
-				arcLengthUsed += arc.lookupArcLength(angleOnArc)
-			interval = totalArcLength / (len(self.p.holeRadii) - 1.)
-			angle = (pi / 2) * ((arcLengthUsed % interval) / interval)
-			radiusIndex = int(arcLengthUsed // interval)
-			if (radiusIndex + 1) >= len(self.p.holeRadii):
-				nextRadiusIndex = radiusIndex
-			else:
-				nextRadiusIndex = radiusIndex + 1
-			radius = self.p.holeRadii[radiusIndex] + sin(angle) * (self.p.holeRadii[nextRadiusIndex] - self.p.holeRadii[radiusIndex])
-			return radius
-
-		def calculateNextAngleIncrement(arcIndex, angleOnArc, distanceToNextHole):
-			arc = arcs[arcIndex]
-			if arc.p.type == 'Arc':
-				radius = arc.p.radius
-			elif arc.p.type == 'Spiral':
-				radius = arc.getRadius(angleOnArc)
-			ratio = distanceToNextHole / (2 * radius)
-			if ratio > 1:
-				return 180
-			angleIncrement = 2 * degrees(asin(ratio))
-			return angleIncrement
-
-		def getCenterPoint(arcIndex, angleOnArc):
-			arc = arcs[arcIndex]
-			if arc.p.type == 'Spiral':
-				startAngle = arc.p.rotationAngle
-			else:
-				startAngle = arc.p.startAngle
-			if arc.p.reverse:
-				angle = startAngle - angleOnArc
-			else:
-				angle = startAngle + angleOnArc
-			if arc.p.type == 'Arc':
-				radius = arc.p.radius
-			elif arc.p.type == 'Spiral':
-				radius = arc.getRadius(angleOnArc)
-			vector = polarToCartesian((angle, radius))
-			return (vector[0] + arc.p.centerPoint[0], vector[1] + arc.p.centerPoint[1])
-
-		def transitionToNextArc(lastCenterPoint, targetDistanceToNextHole, newArcIndex):
-			angle = 0.
-			error = 500
-			lastError = 1000
-			while 5 < error < lastError:
-				lastError = error
-				newCenterPoint = getCenterPoint(newArcIndex, angle)
-				distanceToNextHole = hypot(lastCenterPoint[0] - newCenterPoint[0], lastCenterPoint[1] - newCenterPoint[1])
-				error = 100. * (targetDistanceToNextHole - distanceToNextHole) / targetDistanceToNextHole
-				angle += 0.25
-			return angle
-		self.subShapes = [self.subShapes[0]]
-		arcs = self.subShapes[0].subShapes
-		totalArcLength = sum(arc.p.arcLength for arc in arcs)
-		currentArcIndex = 0
-		currentAngleOnArc = 0
-		nextRadius = self.p.holeRadii[0]
-		angleIncrement = 5
-		while currentArcIndex < len(arcs):
-			arc = arcs[currentArcIndex]
-			if arc.p.type == 'Arc':
-				angleSpan = arc.p.angleSpan
-			elif arc.p.type == 'Spiral':
-				angleSpan = arc.p.sweepAngleSpan
-			while currentAngleOnArc < angleSpan:
-				thisRadius = nextRadius
-				centerPoint = getCenterPoint(currentArcIndex, currentAngleOnArc)
-				skip = False
-				if thisRadius < self.p.minRadius:
-					skip = True
-				# skip = skip or distanceBetween(centerPoint, 
-				if skip:
-					print 'skipping'
-				if not skip:
-					self.subShapes.append(Circle({
-						'centerPoint' : centerPoint,
-						'radius' : thisRadius
-					}))
-				error = 100
-				lastError = 200
-				while 5 < error < lastError:
-					distanceToNextHole = self.p.holeDistance + (thisRadius + nextRadius)
-					angleIncrement = calculateNextAngleIncrement(currentArcIndex, currentAngleOnArc, distanceToNextHole)
-					newNextRadius = calculateNextRadius(currentArcIndex, currentAngleOnArc + angleIncrement)
-					lastError = error
-					error = 100. * abs((nextRadius - newNextRadius) / newNextRadius)
-					nextRadius = newNextRadius
-				currentAngleOnArc += angleIncrement
-			currentArcIndex += 1
-			if currentArcIndex < len(arcs):
-				currentAngleOnArc = transitionToNextArc(centerPoint, distanceToNextHole, currentArcIndex)
 
 class ShapeChain(ShapeGroup):
 	def __init__(self, id, *shapesAndConnections):
@@ -697,4 +228,27 @@ class ShapeChain(ShapeGroup):
 		self.p.startPoint = getattr(self.subShapes[0].p, chainStartPointName)
 		self.p.endPoint = getattr(self.subShapes[-1].p, chainEndPointName)
 
+class CurvyCircuitTrace(Shape):
+	def calculate(self):
+		self.angles = []
+		for i in range(len(self.p.points)-1):
+			firstPoint = self.p.points[i]
+			secondPoint = self.p.points[i + 1]
+			angleInRads = atan2(secondPoint[1] - firstPoint[1], secondPoint[0] - firstPoint[0])
+			self.angles.append(angleInRads)
+		# for i in range(len(self.p.points)-1):
+	def makeSingleLine(offset):
+		points = []
+		angle = self.angles[0]
+		vector = (offset * cos(angle), offset * sin(angle))
+		points.append(addVector(self.p.points[0], vector))
+		for i in range(len(self.angles)-1):
+			angle = (self.angles[i] - self.angles[i+1]) / 2
+			vector = (offset * cos(angle), offset * sin(angle))
+			points.append(addVector(self.p.points[i+1], vector))
+		angle = self.angles[-1]
+		vector = (offset * cos(angle), offset * sin(angle))
+		points.append(addVector(self.p.points[-1], vector))
+		smallerRadius = self.p.radius - offset
+		biggerRadius = self.p.radius + offset
 		
