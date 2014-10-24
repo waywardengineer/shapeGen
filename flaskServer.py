@@ -2,8 +2,8 @@
 from flask import Flask, request, jsonify, Response
 import json
 
-from modules.design import *
-design = NewDesign()
+from designs import *
+design = Nautilus2()
 flaskApp = Flask(__name__,  static_folder='jsGui', static_url_path='/jsGui')
 
 @flaskApp.route('/')
