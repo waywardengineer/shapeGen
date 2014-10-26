@@ -60,7 +60,7 @@ class Param(object):
 		value = 0
 		for i in range(len(parts)):
 			part = parts[i]
-			if part not in ['(', ')', '+', '-', '*', '/', ',', 'avgPoints', 'distanceBetween'] and not isNumeric(part):
+			if part not in ['(', ')', '+', '-', '*', '/', ',', 'avgPoints', 'distanceBetween', 'addVectors', '[', ']'] and not isNumeric(part):
 				identifier = part.split('.')
 				result = parent.doParamSearch(identifier)
 				if result is None or isinstance(result, basestring):
@@ -102,7 +102,7 @@ class Params(dict):
 				return False
 	def __setattr__(self, item, value):
 		if item not in ['resolved', 'dir', 'parent'] and item not in self.dir:
-			if item in ['id', 'type']:
+			if item in ['id', 'type', 'traceClass']:
 				type = basestring
 			elif item in ['reverse']:
 				type = bool
@@ -141,7 +141,9 @@ class Transforms(list):
 		print values
 
 class Shape(object):
+	defaultParams = {}
 	def __init__(self, params):
+		params = dict(self.defaultParams, **params)
 		self.p = Params(self, params)
 		self.transforms = Transforms(self)
 		self.subShapes = []
@@ -158,6 +160,7 @@ class Shape(object):
 		rejectedKeys = []
 		self.p.resolve()
 		if not self.p.resolved:
+			self.p.printValues()
 			raise Exception("error finding param")
 		self.transforms.resolve()
 		self.applyResolvedTransforms()

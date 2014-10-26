@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify, Response
 import json
 
 from designs import *
-design = Nautilus3()
+design = TestDesign()
 flaskApp = Flask(__name__,  static_folder='jsGui', static_url_path='/jsGui')
 
 @flaskApp.route('/')

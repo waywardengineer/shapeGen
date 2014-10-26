@@ -1,4 +1,4 @@
-from math import sin, cos, radians, pi, atan2, hypot, e, degrees, asin
+from math import sin, cos, radians, pi, atan2, hypot, e, degrees, asin, tan
 from copy import deepcopy, copy
 
 
@@ -38,3 +38,15 @@ def interpolate(value, pair1, pair2):
 def avgPoints (*points):
 	result = [sum([points[i][j] for i in range(len(points))]) / len(points) for j in range(len(points[0]))] 
 	return tuple(result)
+	
+def getEndPoint(startPoint, angle, endX = False, endY = False):
+	if endX:
+		xDist = endX - startPoint[0]
+		yDist = xDist * tan(radians(angle))
+		result = (endX, startPoint[1] + yDist)
+	if endY:
+		yDist = endY - startPoint[1]
+		xDist = yDist / tan(radians(angle))
+		result = (startPoint[0] + xDist, endY)
+	return result
+		
