@@ -1,8 +1,12 @@
 from math import sin, cos, radians, pi, atan2, hypot, e, degrees, asin, tan
 from copy import deepcopy, copy
 
-
-
+def getIntersect(point1, angle1, point2, angle2):
+	vector = (point2[0] - point1[0], point2[1] - point1[1])
+	vector = transformPoint(vector, -angle1)
+	xDist = vector[0] + vector[1] * tan(radians(angle2 - angle1 - 90))
+	vector = transformPoint((xDist, 0), angle1)
+	return (addVectors(point1, vector))
 
 def isNumeric(s):
 	return all(c in "0123456789.+-" for c in s) and any(c in "0123456789" for c in s)

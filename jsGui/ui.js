@@ -10,6 +10,7 @@ function doInit(){
 		getLatestData();
 	});
 	getLatestData();
+	setInterval(function(){doCommand(['checkForReload'])}, 1000);
 }
 function getLatestData(){
 	$.ajax(settings.serverUrl + 'getData', {
@@ -51,5 +52,7 @@ function doCommand(command){
 	});
 }
 function handleCommandResult(result){
-	getLatestData();
+	if (!(result['command'] == 'checkForReload' && !result['result'])){
+		getLatestData();
+	}
 }

@@ -9,6 +9,7 @@ class Design(object):
 		self.paramDirectory = {}
 		self.modifiedParams = {}
 		self.shapes = []
+		self.justLoaded = True
 
 	def saveToFile(self):
 		self.drawing = dxf.drawing(self.fileName)
@@ -45,6 +46,11 @@ class Design(object):
 	def updateValue(self, id, value):
 		self.modifiedParams[id] = value
 
+	def checkForReload(self):
+		result = self.justLoaded
+		self.justLoaded = False
+		return result
+		
 
 class MultiDesign(Design):
 	def __init__(self):
