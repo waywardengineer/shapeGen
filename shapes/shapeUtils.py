@@ -36,6 +36,9 @@ def distanceBetween(point1, point2):
 def addVectors(point1, point2):
 	return (point1[0] + point2[0], point1[1] + point2[1])
 
+def subtractVectors(point1, point2):
+	return (point1[0] - point2[0], point1[1] - point2[1])
+
 def interpolate(value, pair1, pair2):
 	return pair1[1] + (pair2[1] - pair1[1]) * ((value - pair1[0]) / (pair2[0] - pair1[0]))
 
@@ -53,4 +56,7 @@ def getEndPoint(startPoint, angle, endX = False, endY = False):
 		xDist = yDist / tan(radians(angle))
 		result = (startPoint[0] + xDist, endY)
 	return result
-		
+
+def getAngle(point1, point2):
+	return degrees(atan2(point2[1] - point1[1], point2[0] - point1[0]))
+

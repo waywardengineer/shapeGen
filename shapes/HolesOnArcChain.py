@@ -8,7 +8,7 @@ class HolesOnArcChain(Shape):
 	def __init__(self, arcChain, *args):
 		Shape.__init__(self, *args)
 		self.addSubShape(arcChain)
-		self.subShapes[0].updateParam('dontRenderSubShapes', True)
+		self.subShapes[0].updateParam('excludeSubShapes', True)
 
 	def calculate(self):
 		def calculateNextRadius(arcIndex, angleOnArc):
@@ -61,12 +61,16 @@ class HolesOnArcChain(Shape):
 			angle = 0.
 			error = 500
 			lastError = 1000
-			while 5 < error < lastError:
+			increment = 2.5 / arcs[newArcIndex].p.radius
+			while 5 < abs(error) < abs(lastError):
 				lastError = error
 				newCenterPoint = getCenterPoint(newArcIndex, angle)
 				distanceToNextHole = hypot(lastCenterPoint[0] - newCenterPoint[0], lastCenterPoint[1] - newCenterPoint[1])
 				error = 100. * (targetDistanceToNextHole - distanceToNextHole) / targetDistanceToNextHole
-				angle += 0.25
+				if error < 0:
+					angle -= increment
+				else:
+					angle += increment
 			return angle
 		self.subShapes = [self.subShapes[0]]
 		arcs = self.subShapes[0].subShapes
@@ -74,23 +78,23 @@ class HolesOnArcChain(Shape):
 		currentArcIndex = 0
 		nextRadius = self.p.holeRadii[0]
 		angleIncrement = 5
+		arc = arcs[currentArcIndex]
+		if arc.p.type == 'Arc':
+			currentAngleOnArc = 0
+		elif arc.p.type == 'Spiral':
+			currentAngleOnArc = arc.p.sweepStartAngle
 		while currentArcIndex < len(arcs):
 			arc = arcs[currentArcIndex]
 			if arc.p.type == 'Arc':
 				endAngle = arc.p.angleSpan
-				currentAngleOnArc = 0
 			elif arc.p.type == 'Spiral':
 				endAngle = arc.p.sweepEndAngle
-				currentAngleOnArc = arc.p.sweepStartAngle
 			while currentAngleOnArc < endAngle:
 				thisRadius = nextRadius
 				centerPoint = getCenterPoint(currentArcIndex, currentAngleOnArc)
 				skip = False
 				if thisRadius < self.p.minRadius:
 					skip = True
-				# skip = skip or distanceBetween(centerPoint, 
-				if skip:
-					print 'skipping'
 				if not skip:
 					self.subShapes.append(Circle({
 						'centerPoint' : centerPoint,
@@ -109,3 +113,22 @@ class HolesOnArcChain(Shape):
 			currentArcIndex += 1
 			if currentArcIndex < len(arcs):
 				currentAngleOnArc = transitionToNextArc(centerPoint, distanceToNextHole, currentArcIndex)
+		if self.p.startTrim:
+			for i in range(self.p.startTrim + 1):
+				self.subShapes[i+1].p.exclude = True
+			startIndex = self.p.startTrim + 1
+		else:
+			startIndex = 1
+		if self.p.endTrim:
+			for i in range(self.p.endTrim):
+				self.subShapes[-i - 1].p.exclude = True
+			endIndex = -self.p.endTrim - 1
+		else:
+			endIndex = -1
+		if len(self.subShapes) > 2:
+			self.p.startPoint = self.subShapes[startIndex].p.centerPoint
+			self.p.endPoint = self.subShapes[endIndex].p.centerPoint
+			self.p.startAngle = getAngle(self.subShapes[startIndex].p.centerPoint, self.subShapes[startIndex + 1].p.centerPoint) - 90
+			self.p.endAngle = getAngle(self.subShapes[endIndex].p.centerPoint, self.subShapes[endIndex - 1].p.centerPoint) - 90
+		
+		

@@ -28,10 +28,10 @@ class ThreeSidedPointyThing(Design):
 			'radius' : 'arc0.radius',
 		}])
 		arcChainForHoles = ArcChain('arcChainForHoles', [{
-			'startAngle' : 'oneEdge.arcChain.arc2.startAngle+5', 
-			'endAngle' : 'oneEdge.arcChain.arc2.endAngle-5', 
+			'startAngle' : 'oneEdge.arcChain.arc2.startAngle + 5', 
+			'endAngle' : 'oneEdge.arcChain.arc2.endAngle - 5', 
 			'centerPoint' : 'oneEdge.arcChain.arc2.centerPoint',
-			'radius' : 'oneEdge.arcChain.arc2.radius-0.75',
+			'radius' : 'oneEdge.arcChain.arc2.radius - 0.75',
 			'reverse' : True,
 			'changeableParams' : ['radius', 'startAngle', 'endAngle'],
 		},{
@@ -82,8 +82,8 @@ class ThreeSidedPointyThing(Design):
 		oneSide = ShapeGroup('oneSide', oneEdge, circle, holes)
 		sides = ShapeChain('sides', (oneSide, 'es'), (oneSide.getTransformedCopy(angle=120), 'es'), (oneSide.getTransformedCopy(angle=240), 'es'))
 		topShape = ShapeGroup('top', sides)
-		sides.s.b.s.b.updateParam('radius', 'oneSide.circle.radius*1.2')
-		sides.s.c.s.b.updateParam('radius', 'oneSide.circle.radius*1.5')
+		# sides.s.b.s.b.updateParam('radius', 'oneSide.circle.radius*1.2')
+		# sides.s.c.s.b.updateParam('radius', 'oneSide.circle.radius*1.5')
 		# for angle in range(0, 360, 30):
 			# topShape.subShapes.append(holes.getTransformedCopy(angle = angle))
 		self.shapes.append(topShape)

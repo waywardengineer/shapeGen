@@ -99,6 +99,6 @@ class HoleySpiralArm(Design):
 			'changeableParams' : ['holeDistance']
 		})
 		topShape = ShapeGroup('top', innerCurve, holes, outerCurve, middleCurve)
-		middleCurve.updateParam('dontRenderSubShapes', True)
+		middleCurve.updateParam('excludeSubShapes', True)
 		self.shapes.append(topShape)
 		Design.build(self)

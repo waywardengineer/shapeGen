@@ -3,7 +3,7 @@ from shapes import *
 import json
 from shapes.shapeUtils import *
 
-class TestDesign(Design):
+class SpiraleyHolePanel(Design):
 	def build(self):
 		def makeHoleChain(arcChain, id=False, holeradii=[0.125, 0.125, 0.2, 0.3, 0.4]):
 			if not id:
@@ -200,48 +200,3 @@ class TestDesign(Design):
 		topShape.addSubShape(Line({'startPoint' : (0, 70), 'endPoint' : (0, 0)}))
 		self.shapes.append(topShape)
 		Design.build(self)
-		
-		
-		
-			# tlArc = Arc({
-				# 'startPoint' : 'outerSpiral.startPoint',
-				# 'startAngle' : 'outerSpiral.startAngle + 180',
-				# 'radius' : 0.03 * i,
-				# 'endAngle' : 'startAngle + 40',
-				# 'id' : 'tlArc'
-			# })
-			# blArc = Arc({
-				# 'startPoint' : 'innerSpiral.startPoint',
-				# 'startAngle' : 'innerSpiral.startAngle',
-				# 'radius' : 0.02 * i,
-				# 'endAngle' : 'startAngle - 70',
-				# 'id' : 'blArc',
-				# 'reverse' : True
-			# })
-			# lArc = Arc({
-				# 'startPoint' : 'tlArc.endPoint',
-				# 'startAngle' : 'tlArc.endAngle',
-				# 'reverse' : False,
-				# 'endPoint' : 'blArc.endPoint'
-			# })
-			# trArc = Arc({
-				# 'startPoint' : 'outerSpiral.endPoint',
-				# 'startAngle' : 'outerSpiral.endAngle',
-				# 'radius' : 0.03 * i,
-				# 'endAngle' : 'startAngle - 100',
-				# 'id' : 'trArc',
-				# 'reverse' : True
-			# })
-			# brArc = Arc({
-				# 'startPoint' : 'innerSpiral.endPoint',
-				# 'startAngle' : 'innerSpiral.endAngle + 180',
-				# 'radius' : 0.02 * i,
-				# 'endAngle' : 'startAngle + 70',
-				# 'id' : 'brArc',
-			# })
-			# lArc = Arc({
-				# 'startPoint' : 'tlArc.endPoint',
-				# 'startAngle' : 'tlArc.endAngle',
-				# 'reverse' : False,
-				# 'endPoint' : 'blArc.endPoint'
-			# })

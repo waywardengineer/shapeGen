@@ -38,9 +38,13 @@ class Spiral(Shape):
 			angleFromStart += minLineSize / (sin(radians(1)) * radius)
 		self.p.arcLength = arcLength
 		self.p.endPoint = self.points[-1]
-		self.p.endAngle = degrees(atan2(self.points[-1][1] - self.points[-2][1], self.points[-1][0] - self.points[-2][0])) + 90
+		self.p.endAngle = degrees(atan2(self.points[-1][1] - self.points[-2][1], self.points[-1][0] - self.points[-2][0])) - 90
 		self.p.startPoint = self.points[0]
-		self.p.startAngle = degrees(atan2(self.points[0][1] - self.points[1][1], self.points[0][0] - self.points[1][0])) + 90
+		self.p.startAngle = degrees(atan2(self.points[0][1] - self.points[1][1], self.points[0][0] - self.points[1][0])) - 90
+		if self.p.reverse:
+			self.p.endAngle += 180
+			self.p.startAngle += 180
+			
 
 	def lookupArcLength(self, angleFromStart):
 		result = [i for i, v in enumerate(self.arcLengthLookup) if v[0] < angleFromStart]

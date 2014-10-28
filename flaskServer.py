@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify, Response
 import json
 
 from designs import *
-design = TestDesign()
+design = SpiraleyHolePanel()
 flaskApp = Flask(__name__,  static_folder='jsGui', static_url_path='/jsGui')
 
 @flaskApp.route('/')

@@ -60,7 +60,7 @@ class Param(object):
 		value = 0
 		for i in range(len(parts)):
 			part = parts[i]
-			if part not in ['(', ')', '+', '-', '*', '/', ',', 'avgPoints', 'distanceBetween', 'addVectors', '[', ']'] and not isNumeric(part):
+			if part not in ['(', ')', '+', '-', '*', '/', ',', 'avgPoints', 'distanceBetween', 'addVectors', '[', ']', 'subtractVectors'] and not isNumeric(part):
 				identifier = part.split('.')
 				result = parent.doParamSearch(identifier)
 				if result is None or isinstance(result, basestring):
@@ -94,6 +94,8 @@ class Params(dict):
 			pendingKeys = newPendingKeys
 			numPendingKeys = newNumPendingKeys
 		self.resolved = numPendingKeys == 0
+		return self.resolved
+		
 	def __getattr__(self, item):
 		if item not in ['resolved', 'dir', 'parent'] and item not in self.dir:
 			if item in self.keys():
@@ -162,17 +164,18 @@ class Shape(object):
 		if not self.p.resolved:
 			self.p.printValues()
 			raise Exception("error finding param")
-		self.transforms.resolve()
+		# self.transforms.resolve()
 		self.applyResolvedTransforms()
-		if not self.transforms.resolved:
-			self.transforms.resolve()
-			if not self.transforms.resolved:
-				self.transforms.printValues()
-				raise Exception("error finding distance transform")
-			self.applyResolvedTransforms()
+		# if not self.transforms.resolved:
+			# self.transforms.resolve()
+			# if not self.transforms.resolved:
+				# self.p.printValues()
+				# self.transforms.printValues()
+				# raise Exception("error finding distance transform")
+			# self.applyResolvedTransforms()
 
 	def addToDrawing(self, drawing, layer='0'):
-		if not self.p.dontRenderSubShapes:
+		if not self.p.excludeSubShapes:
 			for subShape in self.subShapes:
 				subShape.addToDrawing(drawing, layer)
 
@@ -181,8 +184,9 @@ class Shape(object):
 
 	def applyResolvedTransforms(self):
 		foundUnresolved = False
+		self.calculate()
 		while len(self.transforms) > 0 and not foundUnresolved:
-			if self.transforms[0][0].resolved and self.transforms[0][1].resolved:
+			if self.transforms[0][0].resolve(self) and self.transforms[0][1].resolve(self):
 				transform = self.transforms.pop(0)
 				for subShape in self.subShapes:
 					subShape.transforms.append(transform)
@@ -197,7 +201,7 @@ class Shape(object):
 						self.updateParam(key, self.p[key].value + angle)
 			else:
 				foundUnresolved = True
-		self.calculate()
+			self.calculate()
 
 	def getCopy(self, depth = 0, idChain = []):
 		newCopy = copy(self)
