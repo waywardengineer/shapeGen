@@ -4,11 +4,13 @@ import json
 
 from designs import *
 # design = Nautilus3()
+# design = Nautilus()
 # design = Nautilus2()
 # design = SpiraleyHolePanel()
 # design = AlienSpineCircuitTraces()
 # design = MultiDesign(ThreeArmThinSpiral, 10, 1)
-design = ThreeSidedPointyThing()
+# design = ThreeSidedPointyThing()
+design = TestDesign()
 flaskApp = Flask(__name__,  static_folder='jsGui', static_url_path='/jsGui')
 
 @flaskApp.route('/')

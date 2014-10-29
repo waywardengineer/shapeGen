@@ -70,6 +70,8 @@ class CurvyCircuitTrace(Shape):
 			'endPoint' : points[-1]
 		}))
 class NodeyCircuitTrace(Shape):
+	scalableParams = ['traceWidth', 'knobRadius', 'socketRadius', 'socketWidth', 'segmentLength']
+	pointParams = ['startPoint', 'endPoint']
 	defaultParams = {
 		'traceWidth' : 0.2,
 		'knobRadius' : [0.15, 0.3],
@@ -299,3 +301,5 @@ class SpineyCircuitTraceGroup(NodeyCircuitTraceGroup):
 			attachmentPoints[0] += trace.p.attachmentPoints[0]
 			attachmentPoints[1] += trace.p.attachmentPoints[1]
 		self.p.attachmentPoints = attachmentPoints
+
+

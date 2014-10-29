@@ -89,8 +89,8 @@ class SpiraleyHolePanel(Design):
 			'id' : 'spiral4'
 		})
 		holes = makeHoleChain(ShapeGroup('group', spiral), False, [0.125, 0.125,0.3,  0.2, 0.125])
-		holes.transform(angle = 'big4.startAngle - endAngle + 180')
-		holes.transform(distance = 'subtractVectors ( big4.startPoint , endPoint )')
+		holes.transform(angle = '%big4.startAngle - %endAngle + 180')
+		holes.transform(distance = 'subtractVectors (%big4.startPoint , %endPoint )')
 		spiral = Spiral({
 			'rotationAngle' : 0,
 			'centerPoint' : (0, 0),
@@ -101,11 +101,11 @@ class SpiraleyHolePanel(Design):
 			'id' : 'spiral3'
 		})
 		holes = makeHoleChain(ShapeGroup('group', spiral), False, [0.125, 0.125,0.3,  0.2, 0.125])
-		holes.transform(angle = 'big3.startAngle - endAngle + 180')
-		holes.transform(distance = 'subtractVectors ( big3.startPoint , endPoint )')
+		holes.transform(angle = '%big3.startAngle - %endAngle + 180')
+		holes.transform(distance = 'subtractVectors (%big3.startPoint , %endPoint )')
 		arcChain = ArcChain('arcChain', [{
 			'rotationAngle' : -100,
-			'centerPoint' : 'spiral3.centerPoint',
+			'centerPoint' : '%spiral3.centerPoint',
 			'scaleFactor' : 0.8,
 			'growthFactorAdjustment' : 0.5,
 			'sweepAngleSpan' : 690,
@@ -117,7 +117,7 @@ class SpiraleyHolePanel(Design):
 		makeHoleChain(arcChain, False, [0.125, 0.125, 0.3, 0.2])
 		arcChain = ArcChain('arcChain', [{
 			'rotationAngle' : -195,
-			'centerPoint' : 'spiral4.centerPoint',
+			'centerPoint' : '%spiral4.centerPoint',
 			'scaleFactor' : 1,
 			'growthFactorAdjustment' : 0.5,
 			'sweepAngleSpan' : 720,
@@ -161,7 +161,7 @@ class SpiraleyHolePanel(Design):
 		makeHoleChain(arcChain, 'topSpiral', [0.125, 0.2, 0.2])
 		arcChain = ArcChain('arcChain', [{ #up from spiral
 			'rotationAngle' : -60,
-			'centerPoint' : 'topSpiral.arcChain.arc0.centerPoint',
+			'centerPoint' : '%topSpiral.arcChain.arc0.centerPoint',
 			'scaleFactor' : 0.7,
 			'growthFactorAdjustment' : 0.5,
 			'sweepAngleSpan' : 790,

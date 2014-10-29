@@ -31,20 +31,20 @@ class Nautilus(Design):
 				'id' : 'outerSpiral'
 			})
 			lArc = Arc({
-				'startPoint' : 'outerSpiral.endPoint',
-				'startAngle' : 'outerSpiral.endAngle - 70',
+				'startPoint' : '%outerSpiral.endPoint',
+				'startAngle' : '%outerSpiral.endAngle - 70',
 				'reverse' : True,
-				'endPoint' : 'innerSpiral.endPoint'
+				'endPoint' : '%innerSpiral.endPoint'
 			})
 			rArc = Arc({
-				'startPoint' : 'outerSpiral.startPoint',
-				'startAngle' : 'outerSpiral.startAngle - 70',
+				'startPoint' : '%outerSpiral.startPoint',
+				'startAngle' : '%outerSpiral.startAngle - 70',
 				'reverse' : True,
-				'endPoint' : 'innerSpiral.startPoint'
+				'endPoint' : '%innerSpiral.startPoint'
 			})
 			circle = Circle({
-				'centerPoint' : 'avgPoints ( outerSpiral.endPoint , innerSpiral.startPoint )',
-				'radius' : 'distanceBetween ( outerSpiral.startPoint , innerSpiral.startPoint ) / 4'
+				'centerPoint' : 'avgPoints(%outerSpiral.endPoint , %innerSpiral.startPoint )',
+				'radius' : 'distanceBetween(%outerSpiral.startPoint , %innerSpiral.startPoint ) / 4'
 			})
 			segment = ShapeGroup('segment' + str(i), innerSpiral, outerSpiral, lArc, rArc, circle)
 			spirals.addSubShape(segment)

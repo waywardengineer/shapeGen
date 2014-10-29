@@ -31,22 +31,31 @@ class Param(object):
 		return self.resolved
 
 	def getParamVal(self, paramString, parent):
-		parts = paramString.split(' ')
 		error = False
 		value = 0
-		for i in range(len(parts)):
-			part = parts[i]
-			if part not in ['(', ')', '+', '-', '*', '/', ',', 'avgPoints', 'distanceBetween', 'addVectors', '[', ']', 'subtractVectors'] and not isNumeric(part):
-				identifier = part.split('.')
+		lastChunkStart = 0
+		specialChars = ['(', ')', '+', '-', '*', '/', ',', '[', ']', ' ']
+		chunks = []
+		for i in range(len(paramString)):
+			if paramString[i] in specialChars:
+				if i > 0:
+					chunks.append(paramString[lastChunkStart:i])
+				chunks.append(paramString[i])
+				lastChunkStart = i + 1
+		chunks.append(paramString[lastChunkStart:])
+		for i, chunk in enumerate(chunks):
+			if len(chunk) > 0 and chunk[0] == '%':
+				identifier = chunk[1:].split('.')
 				result = parent.doParamSearch(identifier)
 				if result is None or isinstance(result, basestring):
 					error = True
 				else:
-					parts[i] = str(result)
+					chunks[i] = str(result)
 		if not error:
-			paramString = ''.join(parts)
+			paramString = ''.join(chunks)
 			value = eval(paramString)
 		return (not error, value)
+
 
 class Params(dict):
 	def __init__(self, parent, params):
@@ -56,6 +65,7 @@ class Params(dict):
 		self.parent = parent
 		for key in params.keys():
 			self.__setattr__(key, params[key])
+
 	def resolve(self):
 		pendingKeys = self.keys()
 		numPendingKeys = len(pendingKeys)
@@ -71,13 +81,14 @@ class Params(dict):
 			numPendingKeys = newNumPendingKeys
 		self.resolved = numPendingKeys == 0
 		return self.resolved
-		
+
 	def __getattr__(self, item):
 		if item not in ['resolved', 'dir', 'parent'] and item not in self.dir:
 			if item in self.keys():
 				return self[item].value
 			else:
 				return False
+
 	def __setattr__(self, item, value):
 		if item not in ['resolved', 'dir', 'parent'] and item not in self.dir:
 			if item in ['id', 'type', 'traceClass']:
@@ -89,19 +100,23 @@ class Params(dict):
 			self[item] = Param(value, type)
 		else:
 			dict.__setattr__(self, item, value)
+
 	def getCopy(self, newParent):
 		return Params(newParent, {k: self[k].value for k in self.keys()})
+
 	def printValues(self):
 		values = {k : self[k].value for k in self.keys()}
 		print values
-	
+
 
 class Transforms(list):
 	def getCopy(self):
 		return Transforms([(Param(self[i][0].value), Param(self[i][1].value)) for i in range(len(self))])
+
 	def printValues(self):
 		values = [(t[0].value, t[1].value) for t in self]
 		print values
+
 
 class Shape(object):
 	defaultParams = {}
@@ -120,7 +135,6 @@ class Shape(object):
 		self.topShape = topShape
 		for subShape in self.subShapes:
 			subShape.build(topShape)
-		rejectedKeys = []
 		self.p.resolve()
 		if not self.p.resolved:
 			self.p.printValues()
@@ -199,7 +213,6 @@ class Shape(object):
 	def updateParam(self, param, value):
 		self.p.__setattr__(param, value)
 
-
 	def calculate(self):
 		pass
 
@@ -207,10 +220,14 @@ class Shape(object):
 		self.pChecked = False
 		for shape in self.subShapes:
 			shape.clearParamCheckState()
+
 	def doParamSearch(self, identifier):
 		self.topShape.clearParamCheckState()
 		identifier = deepcopy(identifier)
 		result = self.doParamSubsearch(identifier, False, 0)
+		if result[0] is None:
+			print 'Failed finding param'
+			print identifier
 		return result[0]
 
 	def doParamSubsearch(self, identifier, downOnly, distance):
@@ -244,7 +261,6 @@ class Shape(object):
 				if bestResult is None or result[1] < bestResultDistance:
 					(bestResult, bestResultDistance) = result
 		return (bestResult, bestResultDistance)
-				
 
 	def setParent(self, parent):
 		self.parent = parent
@@ -252,3 +268,4 @@ class Shape(object):
 	def addSubShape(self, shape):
 		self.subShapes.append(shape)
 		shape.setParent(self)
+

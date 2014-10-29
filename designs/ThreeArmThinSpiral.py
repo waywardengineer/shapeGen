@@ -24,9 +24,9 @@ class ThreeArmThinSpiral(Design):
 			'noDirectionAlternate' : True
 		}])
 		outer = ArcChain('outer', [{
-			'rotationAngle' : 'inner.arc0.rotationAngle',
+			'rotationAngle' : '%inner.arc0.rotationAngle',
 			'centerPoint' : (0, 0),
-			'scaleFactor' : 'inner.arc0.scaleFactor',
+			'scaleFactor' : '%inner.arc0.scaleFactor',
 			'growthFactorAdjustment' : 1.0 + growthFactorDiff / 2,
 			'sweepAngleSpan' : 330 - 15 * self.sizeIndex,
 			'reverse' : True
@@ -35,15 +35,15 @@ class ThreeArmThinSpiral(Design):
 			'radius' : 8,
 		}])
 		holeChain = ArcChain('holeChain', [{
-			'rotationAngle' : 'outer.arc0.rotationAngle',
+			'rotationAngle' : '%outer.arc0.rotationAngle',
 			'centerPoint' : (0, 0),
-			'scaleFactor' : 'outer.arc0.scaleFactor',
+			'scaleFactor' : '%outer.arc0.scaleFactor',
 			'growthFactorAdjustment' : 1.0,
-			'sweepAngleSpan' : 'outer.arc0.sweepAngleSpan',
+			'sweepAngleSpan' : '%outer.arc0.sweepAngleSpan',
 			'reverse' : True
 		},{
 			'angleSpan' : 38,
-			'radius' : 'outer.arc1.radius * 1.2',
+			'radius' : '%outer.arc1.radius * 1.2',
 		}])
 		holes = HolesOnArcChain(holeChain, {
 			'holeDistance' : 0.2, 
@@ -52,12 +52,12 @@ class ThreeArmThinSpiral(Design):
 			'id' : 'hole'
 		})
 		side = ShapeGroup('side', inner, outer, holes)
-		side.p.startPoint = 'outer.endPoint'
-		side.p.endPoint = 'inner.endPoint'
+		side.p.startPoint = '%outer.endPoint'
+		side.p.endPoint = '%inner.endPoint'
 		side2 = side.getTransformedCopy(angle = 120)
 		side3 = side.getTransformedCopy(angle = 240)
 		sides = ShapeChain('sides', (side, 'se'), (side2, 'se'), (side3, 'se'))
-		sides.transform(distance = 'subtractVectors ( ( 0 , 0 ) , avgPoints ( side.inner.arc0.centerPoint , side1.inner.arc0.centerPoint , side2.inner.arc0.centerPoint ) )')
+		sides.transform(distance = 'subtractVectors ( ( 0 , 0 ) , avgPoints ( %side.inner.arc0.centerPoint , %side1.inner.arc0.centerPoint , %side2.inner.arc0.centerPoint ) )')
 		circle = Circle({
 			'centerPoint' : (0, 0),
 			'radius' : 2.875,

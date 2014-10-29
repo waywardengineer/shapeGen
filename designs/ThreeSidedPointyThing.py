@@ -20,10 +20,10 @@ class ThreeSidedPointyThing(Design):
 			'radius' : 3
 		},{
 			'angleSpan' : 60,
-			'radius' : 'arc1.radius',
+			'radius' : '%arc1.radius',
 		},{
 			'angleSpan' : 30,
-			'radius' : 'arc0.radius',
+			'radius' : '%arc0.radius',
 		}])
 
 		endArc = Arc({
@@ -34,11 +34,9 @@ class ThreeSidedPointyThing(Design):
 			'reverse' : True,
 			'id' : 'endArc'
 		})
-
 		oneSide = ShapeChain('oneSide', (endArc, 'es'), (arcChain, 'se'))
 		sides = ShapeChain('sides', (oneSide, 'es'), (oneSide.getTransformedCopy(angle=120), 'es'), (oneSide.getTransformedCopy(angle=240), 'es'))
-		sides.transform(distance = 'subtractVectors ( ( 0 , 0 ) , avgPoints ( oneSide.endArc.centerPoint , oneSide1.endArc.centerPoint , oneSide2.endArc.centerPoint ) )')
-		
+		sides.transform(distance = 'subtractVectors((0 , 0), avgPoints(%oneSide.endArc.centerPoint, %oneSide1.endArc.centerPoint, %oneSide2.endArc.centerPoint))')
 		arcChainForHoles = ArcChain('arcChainForHoles', [{
 			'rotationAngle' : 0,
 			'centerPoint' : (0, 0),
@@ -51,10 +49,10 @@ class ThreeSidedPointyThing(Design):
 			'radius' : 5,
 		},{
 			'angleSpan' : 60 ,
-			'radius' : 'oneSide.arcChain.arc2.radius - 0.75',
+			'radius' : '%oneSide.arcChain.arc2.radius - 0.75',
 		},{
 			'angleSpan' : 30,
-			'radius' : 'oneSide.arcChain.arc3.radius + 0.75',
+			'radius' : '%oneSide.arcChain.arc3.radius + 0.75',
 		},{
 			'angleSpan' : 50,
 			'radius' : 4,
@@ -65,11 +63,11 @@ class ThreeSidedPointyThing(Design):
 			'holeRadii' : [0.1, 0.2, 0.125, 0.4, 0.2, 0.1],
 			'id' : 'holeChain'
 		})
-		holes.transform(angle = 'oneSide.arcChain.arc2.startAngle - arc2.startAngle')
-		holes.transform(distance = 'subtractVectors ( oneSide.arcChain.arc2.centerPoint , arc2.centerPoint )')
+		holes.transform(angle = '%oneSide.arcChain.arc2.startAngle - %arc2.startAngle')
+		holes.transform(distance = 'subtractVectors (%oneSide.arcChain.arc2.centerPoint , %arc2.centerPoint )')
 		sideHoles = ShapeGroup('sideHoles', holes, holes.getTransformedCopy(angle=120), holes.getTransformedCopy(angle=240))
 		circle = Circle({
-			'centerPoint' : 'oneSide.arcChain.arc2.centerPoint',
+			'centerPoint' : '%oneSide.arcChain.arc2.centerPoint',
 			'radius' : 1,
 			'id' : 'circle'
 		})
