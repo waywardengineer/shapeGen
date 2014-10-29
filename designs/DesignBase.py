@@ -50,15 +50,17 @@ class Design(object):
 		result = self.justLoaded
 		self.justLoaded = False
 		return result
-		
+
 
 class MultiDesign(Design):
-	def __init__(self):
+	def __init__(self, designClass, count, increment):
 		Design.__init__(self)
-		self.fileNameBase=self.__class__.__name__
+		self.designs = [designClass(i*increment) for i in range(count)]
+		self.fileNameBase = designClass.__name__
 		self.currentDesignIndex = 0
 		for i in range(len(self.designs)):
 			self.designs[i].fileName = self.fileNameBase + '_' + str(i) + '.dxf'
+		self.saveToFile()
 
 	def getCurrentStateData(self):
 		data = self.designs[self.currentDesignIndex].getCurrentStateData()

@@ -1,66 +1,54 @@
 from DesignBase import Design, MultiDesign
 from shapes import *
 import json
-class MultiThree(MultiDesign):
-	def __init__(self):
-		self.designs = [ThreeArmThinSpiral(330-15*i, 0.2+0.025*i) for i in range(10)]
-		MultiDesign.__init__(self)
-		self.saveToFile()
 
 class ThreeArmThinSpiral(Design):
-	def __init__(self, spiralSweep=330, growthFactorDiff=0.2):
+	def __init__(self, sizeIndex=0):
 		Design.__init__(self)
-		self.spiralSweep = spiralSweep
-		self.growthFactorDiff=growthFactorDiff
+		self.sizeIndex = sizeIndex
 
 	def build(self):
+		spiralSweep = 330 - 15 * self.sizeIndex
+		growthFactorDiff = 0.25 + 0.02 * self.sizeIndex
 		self.shapes = []
 		inner = ArcChain('inner', [{
-			'rotationAngle' : self.spiralSweep-30,
+			'rotationAngle' :  - 13 * self.sizeIndex,
 			'centerPoint' : (0, 0),
-			'scaleFactor' : 0.5,
-			'growthFactorAdjustment' : 1.0 - self.growthFactorDiff/2,
-			'sweepAngleSpan' : self.spiralSweep,
+			'scaleFactor' : 0.5 + 0.1 * self.sizeIndex,
+			'growthFactorAdjustment' : 1.0 - growthFactorDiff/2,
+			'sweepAngleSpan' : 330 + 90 - 13 * self.sizeIndex,
 			'reverse' : True
 		},{
-			'angleSpan' : 60,
-			'radius' :2.5,
+			'angleSpan' : 25 - 2 * self.sizeIndex,
+			'radius' :3,
 			'noDirectionAlternate' : True
-		},{
-			'angleSpan' : 60,#center
-			'radius' : 3
 		}])
 		outer = ArcChain('outer', [{
 			'rotationAngle' : 'inner.arc0.rotationAngle',
 			'centerPoint' : (0, 0),
 			'scaleFactor' : 'inner.arc0.scaleFactor',
-			'growthFactorAdjustment' : 1.0 + self.growthFactorDiff/2,
-			'sweepAngleSpan' : 'inner.arc0.sweepAngleSpan',
+			'growthFactorAdjustment' : 1.0 + growthFactorDiff / 2,
+			'sweepAngleSpan' : 330 - 15 * self.sizeIndex,
 			'reverse' : True
 		},{
-			'angleSpan' : 60,
-			'radius' :2,
+			'angleSpan' : 45,
+			'radius' : 8,
 		}])
 		holeChain = ArcChain('holeChain', [{
-			'rotationAngle' : 'inner.arc0.rotationAngle',
+			'rotationAngle' : 'outer.arc0.rotationAngle',
 			'centerPoint' : (0, 0),
-			'scaleFactor' : 'inner.arc0.scaleFactor',
+			'scaleFactor' : 'outer.arc0.scaleFactor',
 			'growthFactorAdjustment' : 1.0,
-			'sweepAngleSpan' : 'inner.arc0.sweepAngleSpan',
+			'sweepAngleSpan' : 'outer.arc0.sweepAngleSpan',
 			'reverse' : True
 		},{
-			'angleSpan' : 62,
-			'radius' :2.2,
-			'changeableParams' : ['radius'],
-		},{
-			'angleSpan' : 150,
-			'radius' :3,
-			'changeableParams' : ['radius', 'endAngle'],
+			'angleSpan' : 38,
+			'radius' : 'outer.arc1.radius * 1.2',
 		}])
 		holes = HolesOnArcChain(holeChain, {
 			'holeDistance' : 0.2, 
-			'holeRadii' : [0, 0.1, 0.25, 0.2, 0.01],
-			'minRadius' : 0.125,
+			'holeRadii' : [0.01, 0.01, 0.1, 0.25, 0.2, 0.3, 0.4],
+			'minRadius' : 0.08,
 			'id' : 'hole'
 		})
 		side = ShapeGroup('side', inner, outer, holes)
@@ -69,18 +57,18 @@ class ThreeArmThinSpiral(Design):
 		side2 = side.getTransformedCopy(angle = 120)
 		side3 = side.getTransformedCopy(angle = 240)
 		sides = ShapeChain('sides', (side, 'se'), (side2, 'se'), (side3, 'se'))
+		sides.transform(distance = 'subtractVectors ( ( 0 , 0 ) , avgPoints ( side.inner.arc0.centerPoint , side1.inner.arc0.centerPoint , side2.inner.arc0.centerPoint ) )')
 		circle = Circle({
-			'centerPoint' : 'avgPoints ( side.inner.arc2.centerPoint , side1.inner.arc2.centerPoint , side2.inner.arc2.centerPoint )',
-			'radius' : 2.5
-		})
-		spiral = Spiral({
-			'rotationAngle' : 'side.inner.arc0.rotationAngle',
 			'centerPoint' : (0, 0),
-			'scaleFactor' : 'side.inner.arc0.scaleFactor',
-			'growthFactorAdjustment' : 1.0,
-			'sweepAngleSpan' : 'side.inner.arc0.sweepAngleSpan',
-			'reverse' : True
+			'radius' : 2.875,
+			'id' : 'centerCircle'
 		})
-		topShape = ShapeGroup('top', sides, circle, spiral)
+		hole = Circle({
+			'centerPoint' : (3.9 + 0.065 * self.sizeIndex, 0),
+			'radius' : 0.5 + 0.05 * self.sizeIndex
+		})
+		hole.transform(angle = 3 + 1.5 * self.sizeIndex)
+
+		topShape = ShapeGroup('top', sides, circle, hole, hole.getTransformedCopy(angle = 120), hole.getTransformedCopy(angle = 240))
 		self.shapes.append(topShape)
 		Design.build(self)

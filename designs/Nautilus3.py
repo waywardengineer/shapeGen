@@ -75,62 +75,6 @@ class Nautilus3(Design):
 		while i < 12:
 			makeSegment(0, 1, i * spiralInterval, spiralAngleSpan)
 			i += 1
-		# makeSegment(0.52, 1, i * spiralInterval, (spiralAngleSpan / 2) - spiralSpacing)
-		# while i < 8:
-			# makeSegment(0, 0.5, i * spiralInterval, spiralAngleSpan)
-			# makeSegment(0.52, 1, i * spiralInterval + spiralAngleSpan / 2, spiralAngleSpan)
-			# i += 1
-		# makeSegment(0.77, 1, i * spiralInterval + spiralAngleSpan / 2, (spiralAngleSpan / 2) - spiralSpacing)
-		# while i < 10:
-			# makeSegment(0, 0.5, i * spiralInterval, spiralAngleSpan)
-			# makeSegment(0.52, 0.75, i * spiralInterval + spiralAngleSpan / 2, spiralAngleSpan)
-			# makeSegment(0.77, 1, i * spiralInterval + spiralAngleSpan, spiralAngleSpan)
-			# i += 1
 		topShape = ShapeGroup('top', spirals)
 		self.shapes.append(topShape)
 		Design.build(self)
-		
-		
-		
-			# tlArc = Arc({
-				# 'startPoint' : 'outerSpiral.startPoint',
-				# 'startAngle' : 'outerSpiral.startAngle + 180',
-				# 'radius' : 0.03 * i,
-				# 'endAngle' : 'startAngle + 40',
-				# 'id' : 'tlArc'
-			# })
-			# blArc = Arc({
-				# 'startPoint' : 'innerSpiral.startPoint',
-				# 'startAngle' : 'innerSpiral.startAngle',
-				# 'radius' : 0.02 * i,
-				# 'endAngle' : 'startAngle - 70',
-				# 'id' : 'blArc',
-				# 'reverse' : True
-			# })
-			# lArc = Arc({
-				# 'startPoint' : 'tlArc.endPoint',
-				# 'startAngle' : 'tlArc.endAngle',
-				# 'reverse' : False,
-				# 'endPoint' : 'blArc.endPoint'
-			# })
-			# trArc = Arc({
-				# 'startPoint' : 'outerSpiral.endPoint',
-				# 'startAngle' : 'outerSpiral.endAngle',
-				# 'radius' : 0.03 * i,
-				# 'endAngle' : 'startAngle - 100',
-				# 'id' : 'trArc',
-				# 'reverse' : True
-			# })
-			# brArc = Arc({
-				# 'startPoint' : 'innerSpiral.endPoint',
-				# 'startAngle' : 'innerSpiral.endAngle + 180',
-				# 'radius' : 0.02 * i,
-				# 'endAngle' : 'startAngle + 70',
-				# 'id' : 'brArc',
-			# })
-			# lArc = Arc({
-				# 'startPoint' : 'tlArc.endPoint',
-				# 'startAngle' : 'tlArc.endAngle',
-				# 'reverse' : False,
-				# 'endPoint' : 'blArc.endPoint'
-			# })

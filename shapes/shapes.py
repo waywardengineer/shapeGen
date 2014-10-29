@@ -12,8 +12,7 @@ class ShapeGroup(Shape):
 		if self.p.id:
 			for shape in self.subShapes:
 				shape.setParent(self)
-	def calculate(self):
-		Shape.calculate(self)
+
 
 class Circle(Shape):
 	def addToDrawing(self, drawing, layer='0'):
@@ -22,11 +21,13 @@ class Circle(Shape):
 			circle = dxf.circle(self.p.radius, self.p.centerPoint, layer=layer)
 			drawing.add(circle)
 
+
 class Line(Shape):
 	def addToDrawing(self, drawing, layer='0'):
 		Shape.addToDrawing(self, drawing, layer)
 		line = dxf.line(self.p.startPoint, self.p.endPoint, layer=layer)
 		drawing.add(line)
+
 
 class Arc(Shape):
 	def calculate(self, *args): #takes [startPoint, startAngle, endPoint] or [startPoint, startAngle, radius, endAngle] or [centerPoint, radius, startAngle, endAngle]
@@ -87,7 +88,6 @@ class Arc(Shape):
 		self.p.angleSpan = angleSpan
 		self.p.arcLength = self.p.radius * 2 * pi * angleSpan / 360.
 
-
 	def addToDrawing(self, drawing, layer='0'):
 		Shape.addToDrawing(self, drawing, layer) 
 		if not self.error:
@@ -140,13 +140,9 @@ class BezCurve(Shape):
 			self.p['points'] = newPoints
 
 
-
-
-
 class ArcChain(ShapeGroup):
 	def __init__(self, id, definitions):
 		ShapeGroup.__init__(self,id)
-		indexForPrepends = 0
 		for i, definition in enumerate(definitions):
 			if 'growthFactorAdjustment' in definition.keys():
 				shape = Spiral(definition)
@@ -155,11 +151,7 @@ class ArcChain(ShapeGroup):
 			self.addSubShape(shape)
 			shape.updateParam('id', 'arc' + str(i))
 			if i > 0:
-				if shape.p.prepend:
-					lastShape = self.subShapes[indexForPrepends]
-					indexForPrepends = i
-				else:
-					lastShape = self.subShapes[i-1]
+				lastShape = self.subShapes[i-1]
 				if shape.p.noDirectionAlternate:
 					reverse = lastShape.p.reverse
 				else:
@@ -170,40 +162,20 @@ class ArcChain(ShapeGroup):
 						angleChangeStr = ''
 					else:
 						angleChangeStr = ' + 180'
-					if shape.p.prepend:
-						shape.updateParam('endPoint', '.'.join([lastShape.p.id, 'startPoint']))
-						shape.updateParam('endAngle', '.'.join([lastShape.p.id, 'startAngle' + angleChangeStr]))
-					else:
-						shape.updateParam('startPoint', '.'.join([lastShape.p.id, 'endPoint']))
-						shape.updateParam('startAngle', '.'.join([lastShape.p.id, 'endAngle' + angleChangeStr]))
+					shape.updateParam('startPoint', '.'.join([lastShape.p.id, 'endPoint']))
+					shape.updateParam('startAngle', '.'.join([lastShape.p.id, 'endAngle' + angleChangeStr]))
 			if shape.p.type == 'Arc' and shape.p.angleSpan:
-				if shape.p.prepend:
-					if shape.p.reverse:
-						startAngleStr = 'endAngle + ' + str(shape.p.angleSpan)
-					else:
-						startAngleStr = 'endAngle - ' + str(shape.p.angleSpan)
-					shape.updateParam('startAngle', startAngleStr)
+				if shape.p.reverse:
+					endAngleStr = 'startAngle - ' + str(shape.p.angleSpan)
 				else:
-					if shape.p.reverse:
-						endAngleStr = 'startAngle - ' + str(shape.p.angleSpan)
-					else:
-						endAngleStr = 'startAngle + ' + str(shape.p.angleSpan)
-					shape.updateParam('endAngle', endAngleStr)
-		newSubShapes =  []
-		for shape in self.subShapes:
-			if shape.p.prepend:
-				newSubShapes = [shape] + newSubShapes
-			else:
-				newSubShapes.append(shape)
-		self.subShapes = newSubShapes
+					endAngleStr = 'startAngle + ' + str(shape.p.angleSpan)
+				shape.updateParam('endAngle', endAngleStr)
 
 	def calculate(self):
 		self.p.startPoint = self.subShapes[0].p.startPoint
 		self.p.startAngle = self.subShapes[0].p.startAngle
 		self.p.endPoint = self.subShapes[-1].p.endPoint
 		self.p.endAngle = self.subShapes[-1].p.endAngle
-
-
 
 class ShapeChain(ShapeGroup):
 	def __init__(self, id, *shapesAndConnections):
@@ -222,8 +194,7 @@ class ShapeChain(ShapeGroup):
 				getattr(fromShape.p, fromPointName)[1] - getattr(toShape.p, toPointName)[1]
 			)
 			toShape.transform(distance=transform)
-			toShape.transforms.resolve()
-			toShape.applyResolvedTransforms()
+			toShape.applyTransforms()
 		chainStartPointName = pointNames[self.connections[0][0]]
 		chainEndPointName = pointNames[self.connections[-1][1]]
 		self.p.startPoint = getattr(self.subShapes[0].p, chainStartPointName)
@@ -268,9 +239,4 @@ class OffsetArcChain(ArcChain):
 				}))
 			previousArc = arc
 
-	def calculate(self):
-		self.p.startPoint = self.subShapes[0].p.startPoint
-		self.p.startAngle = self.subShapes[0].p.startAngle
-		self.p.endPoint = self.subShapes[-1].p.endPoint
-		self.p.endAngle = self.subShapes[-1].p.endAngle
 

@@ -5,30 +5,6 @@ from shapeUtils import *
 
 minLineSize = 0.1
 
-class DictWrapper():
-	def __init__(self, dictObj):
-		self._dictObj = dictObj
-	def __getattr__(self, item):
-		if item not in ['_dictObj']:
-			if item in self._dictObj.keys():
-				data = self._dictObj[item]
-				if isinstance(data, dict):
-					return DictWrapper(self._dictObj[item])
-				else:
-					return data
-		return False
-class ListWrapper():
-	def __init__(self, listObj):
-		self._listObj = listObj
-	def __getattr__(self, item):
-		if item not in ['_dictObj']:
-			if len(item) == 1:
-				index = ord(item) - 97
-				if index < len(self._listObj):
-					return self._listObj[index]
-		return False
-
-
 class Param(object):
 	def __init__(self, value, type = float):
 		self.value = value
@@ -121,23 +97,8 @@ class Params(dict):
 	
 
 class Transforms(list):
-	def __init__(self, parent, *args, **kwargs):
-		list.__init__(self, *args, **kwargs)
-		self.resolved = False
-		self.parent = parent
-	def resolve(self):
-		foundUnresolvable = False
-		i = 0
-		if len(self) > 0:
-			while not foundUnresolvable and i < len(self):
-				if self[i][0] and not self[i][0].resolve(self.parent):
-					foundUnresolvable = True
-				if self[i][1] and not self[i][1].resolve(self.parent):
-					foundUnresolvable = True
-				i += 1
-		self.resolved = not foundUnresolvable
-	def getCopy(self, newParent):
-		return Transforms(newParent, [(Param(self[i][0].value), Param(self[i][1].value)) for i in range(len(self))])
+	def getCopy(self):
+		return Transforms([(Param(self[i][0].value), Param(self[i][1].value)) for i in range(len(self))])
 	def printValues(self):
 		values = [(t[0].value, t[1].value) for t in self]
 		print values
@@ -147,7 +108,7 @@ class Shape(object):
 	def __init__(self, params):
 		params = dict(self.defaultParams, **params)
 		self.p = Params(self, params)
-		self.transforms = Transforms(self)
+		self.transforms = Transforms()
 		self.subShapes = []
 		self.parent = False
 		self.timesCopied = 0
@@ -164,15 +125,7 @@ class Shape(object):
 		if not self.p.resolved:
 			self.p.printValues()
 			raise Exception("error finding param")
-		# self.transforms.resolve()
-		self.applyResolvedTransforms()
-		# if not self.transforms.resolved:
-			# self.transforms.resolve()
-			# if not self.transforms.resolved:
-				# self.p.printValues()
-				# self.transforms.printValues()
-				# raise Exception("error finding distance transform")
-			# self.applyResolvedTransforms()
+		self.applyTransforms()
 
 	def addToDrawing(self, drawing, layer='0'):
 		if not self.p.excludeSubShapes:
@@ -182,15 +135,14 @@ class Shape(object):
 	def transform(self, angle = 0, distance = (0, 0)):
 		self.transforms.append((Param(angle), Param(distance)))
 
-	def applyResolvedTransforms(self):
-		foundUnresolved = False
+	def applyTransforms(self):
 		self.calculate()
-		while len(self.transforms) > 0 and not foundUnresolved:
+		while len(self.transforms) > 0:
 			if self.transforms[0][0].resolve(self) and self.transforms[0][1].resolve(self):
 				transform = self.transforms.pop(0)
 				for subShape in self.subShapes:
 					subShape.transforms.append(transform)
-					subShape.applyResolvedTransforms()
+					subShape.applyTransforms()
 				angle = transform[0].value
 				distance = transform[1].value
 				for key in ['startPoint', 'endPoint', 'centerPoint']:
@@ -200,7 +152,9 @@ class Shape(object):
 					if key in self.p.keys():
 						self.updateParam(key, self.p[key].value + angle)
 			else:
-				foundUnresolved = True
+				self.p.printValues()
+				self.transforms.printValues()
+				raise Exception("error finding distance transform")
 			self.calculate()
 
 	def getCopy(self, depth = 0, idChain = []):
@@ -210,7 +164,7 @@ class Shape(object):
 			idChain.append(self.p.id)
 			depth += 1
 		newCopy.p = self.p.getCopy(newCopy)
-		newCopy.transforms = self.transforms.getCopy(newCopy)
+		newCopy.transforms = self.transforms.getCopy()
 		newCopy.subShapes = [s.getCopy(depth, idChain) for s in self.subShapes]
 		for shape in newCopy.subShapes:
 			shape.setParent(newCopy)

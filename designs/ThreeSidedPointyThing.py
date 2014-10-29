@@ -12,13 +12,11 @@ class ThreeSidedPointyThing(Design):
 			'angleSpan' : 30, 
 			'radius' : 5,
 			'reverse' : True,
-			#'changeableParams' : ['radius', 'angleSpan'],
 		},{
 			'angleSpan' : 60,
 			'radius' :5,
-			#'changeableParams' : ['radius', 'angleSpan'],
 		},{
-			'angleSpan' : 60,#center
+			'angleSpan' : 60,
 			'radius' : 3
 		},{
 			'angleSpan' : 60,
@@ -27,41 +25,6 @@ class ThreeSidedPointyThing(Design):
 			'angleSpan' : 30,
 			'radius' : 'arc0.radius',
 		}])
-		arcChainForHoles = ArcChain('arcChainForHoles', [{
-			'startAngle' : 'oneEdge.arcChain.arc2.startAngle + 5', 
-			'endAngle' : 'oneEdge.arcChain.arc2.endAngle - 5', 
-			'centerPoint' : 'oneEdge.arcChain.arc2.centerPoint',
-			'radius' : 'oneEdge.arcChain.arc2.radius - 0.75',
-			'reverse' : True,
-			'changeableParams' : ['radius', 'startAngle', 'endAngle'],
-		},{
-			'angleSpan' : 60,
-			'radius' :4.5,
-			'changeableParams' : ['radius', 'angleSpan'],
-		},{
-			'angleSpan' : 25,
-			'radius' :2,
-			'changeableParams' : ['radius', 'angleSpan'],
-			'noDirectionAlternate' : True
-		},{
-			'angleSpan' : 50,
-			'radius' : 'arc1.radius',
-			'prepend' : True
-		}])
-		spiral = Spiral({
-			'rotationAngle' : 45, 
-			'centerPoint' : (0,0), 
-			'sweepAngleSpan' : 420, 
-			'scaleFactor' : 0.25, 
-			'growthFactorAdjustment' : 1, 
-			'reverse' : True,
-			'id' : 'spiral'
-		})
-		holes = HolesOnArcChain(arcChainForHoles, {
-			'holeDistance' : 0.2, 
-			'holeRadii' : [0.2, 0.4, 0.125, 0.4, 0.2],
-			# 'id' : 'holeChain'
-		})
 
 		endArc = Arc({
 			'startPoint' : (0, 0),
@@ -71,20 +34,45 @@ class ThreeSidedPointyThing(Design):
 			'reverse' : True,
 			'id' : 'endArc'
 		})
+
+		oneSide = ShapeChain('oneSide', (endArc, 'es'), (arcChain, 'se'))
+		sides = ShapeChain('sides', (oneSide, 'es'), (oneSide.getTransformedCopy(angle=120), 'es'), (oneSide.getTransformedCopy(angle=240), 'es'))
+		sides.transform(distance = 'subtractVectors ( ( 0 , 0 ) , avgPoints ( oneSide.endArc.centerPoint , oneSide1.endArc.centerPoint , oneSide2.endArc.centerPoint ) )')
+		
+		arcChainForHoles = ArcChain('arcChainForHoles', [{
+			'rotationAngle' : 0,
+			'centerPoint' : (0, 0),
+			'scaleFactor' : 0.5,
+			'growthFactorAdjustment' : 1.0,
+			'sweepAngleSpan' : 360,
+			'reverse' : True
+		},{
+			'angleSpan' : 25 ,
+			'radius' : 5,
+		},{
+			'angleSpan' : 60 ,
+			'radius' : 'oneSide.arcChain.arc2.radius - 0.75',
+		},{
+			'angleSpan' : 30,
+			'radius' : 'oneSide.arcChain.arc3.radius + 0.75',
+		},{
+			'angleSpan' : 50,
+			'radius' : 4,
+			'noDirectionAlternate' : True
+		}])
+		holes = HolesOnArcChain(arcChainForHoles, {
+			'holeDistance' : 0.2, 
+			'holeRadii' : [0.1, 0.2, 0.125, 0.4, 0.2, 0.1],
+			'id' : 'holeChain'
+		})
+		holes.transform(angle = 'oneSide.arcChain.arc2.startAngle - arc2.startAngle')
+		holes.transform(distance = 'subtractVectors ( oneSide.arcChain.arc2.centerPoint , arc2.centerPoint )')
+		sideHoles = ShapeGroup('sideHoles', holes, holes.getTransformedCopy(angle=120), holes.getTransformedCopy(angle=240))
 		circle = Circle({
-			'centerPoint' : 'oneEdge.arcChain.arc2.centerPoint',
+			'centerPoint' : 'oneSide.arcChain.arc2.centerPoint',
 			'radius' : 1,
-			#'changeableParams' : ['radius'],
 			'id' : 'circle'
 		})
-
-		oneEdge = ShapeChain('oneEdge', (endArc, 'es'), (arcChain, 'se'))
-		oneSide = ShapeGroup('oneSide', oneEdge, circle, holes)
-		sides = ShapeChain('sides', (oneSide, 'es'), (oneSide.getTransformedCopy(angle=120), 'es'), (oneSide.getTransformedCopy(angle=240), 'es'))
-		topShape = ShapeGroup('top', sides)
-		# sides.s.b.s.b.updateParam('radius', 'oneSide.circle.radius*1.2')
-		# sides.s.c.s.b.updateParam('radius', 'oneSide.circle.radius*1.5')
-		# for angle in range(0, 360, 30):
-			# topShape.subShapes.append(holes.getTransformedCopy(angle = angle))
+		topShape = ShapeGroup('top', sides, sideHoles, circle, circle.getTransformedCopy(angle=120), circle.getTransformedCopy(angle=240))
 		self.shapes.append(topShape)
 		Design.build(self)

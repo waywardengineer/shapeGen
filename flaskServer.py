@@ -3,7 +3,12 @@ from flask import Flask, request, jsonify, Response
 import json
 
 from designs import *
-design = SpiraleyHolePanel()
+# design = Nautilus3()
+# design = Nautilus2()
+# design = SpiraleyHolePanel()
+# design = AlienSpineCircuitTraces()
+# design = MultiDesign(ThreeArmThinSpiral, 10, 1)
+design = ThreeSidedPointyThing()
 flaskApp = Flask(__name__,  static_folder='jsGui', static_url_path='/jsGui')
 
 @flaskApp.route('/')
