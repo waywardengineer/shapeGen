@@ -4,6 +4,7 @@ from dxfwrite import DXFEngine as dxf
 from shapeUtils import *
 from shapeBases import *
 from Spiral import Spiral
+from random import random
 
 class ShapeGroup(Shape):
 	def __init__(self, id, *shapes):
@@ -238,59 +239,7 @@ class OffsetArcChain(ArcChain):
 					'reverse' : reverse
 				}))
 			previousArc = arc
-class BranchTest(Shape):
-	defaultParams = {
-		'length' : 10,
-		'branchAngles' : [15, 0, -15],
-		'startRadius' : 0.25,
-	}
-	def __init__(self, params):
-		Shape.__init__(self, params)
-		mainLength = 0.9 * self.p.lengthScaling * self.p.length
-		branchLength = 0.1 * self.p.lengthScaling * self.p.length
-		branchPoint = addVectors(transformPoint((mainLength, 0), self.p.angle), self.p.startPoint)
-		endPoints = []
-		self.addSubShape(Circle({'radius' : self.p.startRadius * self.p.featureScaling, 'centerPoint' : self.p.startPoint}))
-		self.addSubShape(Line({'startPoint' : self.p.startPoint, 'endPoint' : branchPoint}))
-		for i in range(len(self.p.branchAngles)):
-			endPoint = addVectors(transformPoint((branchLength, 0), self.p.angle + self.p.branchAngles[i]), branchPoint)
-			endPoints.append(endPoint)
-			self.addSubShape(Line({'startPoint' : branchPoint, 'endPoint' : endPoint}))
-		self.p.endPoints = endPoints
-			
-class BranchingShape(Shape):
-	defaultParams = {
-		'lengthScaling' : 1.0,
-		'featureScaling' : 1.0,
-		'angle' : 90,
-		'depth' : 0,
-		'maxDepth' : 10,
-		'angles' : [60, 0],
-		'directionalitySum' : 0,
-		'featureScalingFactor' : [0.35, 1, 0.35],
-		'lengthScalingFactor' : [0.48, 0.85, 0.35],
-		'minLengthFactor' : 0.1,
-	}
-	def __init__(self, branchClass, *args):
-		Shape.__init__(self, *args)
-		paramVals = {k : self.p[k].value for k in self.p.keys()}
-		branchShape = branchClass(paramVals)
-		self.addSubShape(branchShape)
-		
-		if self.p.depth < self.p.maxDepth and self.p.lengthScaling > self.p.minLengthFactor:
-			for i in range(len(self.p.angles)):
-				directionalityIncrement = float(len(self.p.angles) - 1) / 2 - float(i)
-				directionalityAngleAdjustment = pow(abs(self.p.directionalitySum), 1.6) * 8
-				if self.p.directionalitySum < 0:
-					directionalityAngleAdjustment =-directionalityAngleAdjustment
-				newParamVals = deepcopy(paramVals)
-				newParamVals['lengthScaling'] *= self.p.lengthScalingFactor[i] 
-				newParamVals['featureScaling'] *= self.p.featureScalingFactor[i]
-				newParamVals['angle'] = self.p.angle + directionalityAngleAdjustment + self.p.angles[i]
-				newParamVals['depth'] = self.p.depth + 1
-				newParamVals['startPoint'] = branchShape.p.endPoints[i]
-				newParamVals['directionalitySum'] += directionalityIncrement
-				self.addSubShape(BranchingShape(branchClass, newParamVals))
-		
+
+
 
 

@@ -60,3 +60,25 @@ def getEndPoint(startPoint, angle, endX = False, endY = False):
 def getAngle(point1, point2):
 	return degrees(atan2(point2[1] - point1[1], point2[0] - point1[0]))
 
+def linesCross(points1, points2):
+	vector1 = (points1[1][0] - points1[0][0], points1[1][1] - points1[0][1])
+	vector2 = (points2[1][0] - points2[0][0], points2[1][1] - points2[0][1])
+	vectorBetweenStarts = (points2[0][0] - points1[0][0], points2[0][1] - points1[0][1])
+	angle = degrees(atan2(vector1[1], vector1[0]))
+	newVector1 = transformPoint(vector1, angle = -angle)
+	newVector2 = transformPoint(vector2, angle = -angle)
+	newStartPoint = transformPoint(vectorBetweenStarts, angle = -angle)
+	newEndPoint = addVectors(newStartPoint, newVector2) 
+	result = False
+	keepChecking = True
+	if (newStartPoint[1] > 0 and newEndPoint[1] > 0) or (newStartPoint[1] < 0 and newEndPoint[1] < 0):
+		keepChecking = False
+	if keepChecking:
+		if (newStartPoint[0] > newVector1[0] and newEndPoint[0] > newVector1[0]) or (newStartPoint[0] < 0 and newEndPoint[0] < 0):
+			keepChecking = False
+	if keepChecking:
+		line2Angle = degrees(atan2(newVector2[1], newVector2[0]))
+		
+	
+	
+	

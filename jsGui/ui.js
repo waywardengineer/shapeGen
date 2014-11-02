@@ -6,7 +6,7 @@ function doInit(){
 	canvas.width = window.innerWidth -275;
 	canvas.height = window.innerHeight -15; 
 	ctx = canvas.getContext('2d');
-	$('#redrawButton').button().click(function(e){
+	$('#recalcButton').button().click(function(e){
 		getLatestData();
 	});
 	getLatestData();

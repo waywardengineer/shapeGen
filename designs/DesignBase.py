@@ -51,7 +51,6 @@ class Design(object):
 		self.justLoaded = False
 		return result
 
-
 class MultiDesign(Design):
 	def __init__(self, designClass, count, increment):
 		Design.__init__(self)

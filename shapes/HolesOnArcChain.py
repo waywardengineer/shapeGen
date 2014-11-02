@@ -21,6 +21,7 @@ class HolesOnArcChain(Shape):
 			interval = totalArcLength / (len(self.p.holeRadii) - 1.)
 			angle = (pi / 2) * ((arcLengthUsed % interval) / interval)
 			radiusIndex = int(arcLengthUsed // interval)
+			radiusIndex = min(radiusIndex, len(self.p.holeRadii)-1)
 			if (radiusIndex + 1) >= len(self.p.holeRadii):
 				nextRadiusIndex = radiusIndex
 			else:
@@ -130,5 +131,8 @@ class HolesOnArcChain(Shape):
 			self.p.endPoint = self.subShapes[endIndex].p.centerPoint
 			self.p.startAngle = getAngle(self.subShapes[startIndex].p.centerPoint, self.subShapes[startIndex + 1].p.centerPoint) - 90
 			self.p.endAngle = getAngle(self.subShapes[endIndex].p.centerPoint, self.subShapes[endIndex - 1].p.centerPoint) - 90
+		else:
+			self.p.startPoint = arcs[0].p.startPoint
+			self.p.endPoint = arcs[-1].p.endPoint
 		
 		
