@@ -32,7 +32,9 @@ class Line(Shape):
 
 class Arc(Shape):
 	def calculate(self, *args): #takes [startPoint, startAngle, endPoint] or [startPoint, startAngle, radius, endAngle] or [centerPoint, radius, startAngle, endAngle]
-		if listContains(['startPoint', 'startAngle', 'endPoint'], self.p.keys()):
+		if self.calculated:
+			pass
+		elif listContains(['startPoint', 'startAngle', 'endPoint'], self.p.keys()):
 			startPoint = self.p.startPoint
 			startAngleRads = radians(self.p.startAngle)
 			endPoint = self.p.endPoint
@@ -81,13 +83,15 @@ class Arc(Shape):
 		else:
 			print self.p
 			raise Exception('No valid combination of arc data')
-		if self.p.reverse:
-			angleSpan = self.p.startAngle - self.p.endAngle
-		else:
-			angleSpan = self.p.endAngle - self.p.startAngle
-		angleSpan = (angleSpan + 720) % 360
-		self.p.angleSpan = angleSpan
-		self.p.arcLength = self.p.radius * 2 * pi * angleSpan / 360.
+		if not self.calculated:
+			if self.p.reverse:
+				angleSpan = self.p.startAngle - self.p.endAngle
+			else:
+				angleSpan = self.p.endAngle - self.p.startAngle
+			angleSpan = (angleSpan + 720) % 360
+			self.p.angleSpan = angleSpan
+			self.p.arcLength = self.p.radius * 2 * pi * angleSpan / 360.
+			self.calculated = True
 
 	def addToDrawing(self, drawing, layer='0'):
 		Shape.addToDrawing(self, drawing, layer) 

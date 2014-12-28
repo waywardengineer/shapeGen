@@ -3,7 +3,7 @@ from copy import deepcopy, copy
 from dxfwrite import DXFEngine as dxf
 from shapeUtils import *
 
-minLineSize = 0.1
+minLineSize = 0.03
 
 class Param(object):
 	def __init__(self, value, type = float):
@@ -105,9 +105,10 @@ class Params(dict):
 		return Params(newParent, {k: self[k].value for k in self.keys()})
 
 	def printValues(self):
-		values = {k : self[k].value for k in self.keys()}
-		print values
+		print self.dumpValues()
 
+	def dumpValues(self):
+		return {k : self[k].value for k in self.keys()}
 
 class Transforms(list):
 	def getCopy(self):
@@ -130,6 +131,7 @@ class Shape(object):
 		self.p.type = self.__class__.__name__
 		self.pChecked = False
 		self.error = False
+		self.calculated = False
 		
 	def build(self, topShape):
 		self.topShape = topShape

@@ -11,6 +11,7 @@ from designs import *
 # design = MultiDesign(ThreeArmThinSpiral, 10, 1)
 # design = ThreeSidedPointyThing()
 design = TestDesign()
+# design = FerneyTree()
 flaskApp = Flask(__name__,  static_folder='jsGui', static_url_path='/jsGui')
 
 @flaskApp.route('/')

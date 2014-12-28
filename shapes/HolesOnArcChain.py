@@ -73,8 +73,10 @@ class HolesOnArcChain(Shape):
 				else:
 					angle += increment
 			return angle
-		self.subShapes = [self.subShapes[0]]
+		del self.subShapes[1:]
 		arcs = self.subShapes[0].subShapes
+		for arc in arcs:
+			arc.calculate()
 		totalArcLength = sum(arc.p.arcLength for arc in arcs)
 		currentArcIndex = 0
 		nextRadius = self.p.holeRadii[0]
@@ -132,6 +134,7 @@ class HolesOnArcChain(Shape):
 			self.p.startAngle = getAngle(self.subShapes[startIndex].p.centerPoint, self.subShapes[startIndex + 1].p.centerPoint) - 90
 			self.p.endAngle = getAngle(self.subShapes[endIndex].p.centerPoint, self.subShapes[endIndex - 1].p.centerPoint) - 90
 		else:
+			self.p.printValues()
 			self.p.startPoint = arcs[0].p.startPoint
 			self.p.endPoint = arcs[-1].p.endPoint
 		

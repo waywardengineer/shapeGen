@@ -40,7 +40,10 @@ def subtractVectors(point1, point2):
 	return (point1[0] - point2[0], point1[1] - point2[1])
 
 def interpolate(value, pair1, pair2):
-	return pair1[1] + (pair2[1] - pair1[1]) * ((value - pair1[0]) / (pair2[0] - pair1[0]))
+	if pair2[0] - pair1[0] > 0:
+		return pair1[1] + (pair2[1] - pair1[1]) * ((value - pair1[0]) / (pair2[0] - pair1[0]))
+	else:
+		return pair1[0]
 
 def avgPoints (*points):
 	result = [sum([points[i][j] for i in range(len(points))]) / len(points) for j in range(len(points[0]))] 
@@ -60,25 +63,28 @@ def getEndPoint(startPoint, angle, endX = False, endY = False):
 def getAngle(point1, point2):
 	return degrees(atan2(point2[1] - point1[1], point2[0] - point1[0]))
 
-def linesCross(points1, points2):
-	vector1 = (points1[1][0] - points1[0][0], points1[1][1] - points1[0][1])
-	vector2 = (points2[1][0] - points2[0][0], points2[1][1] - points2[0][1])
-	vectorBetweenStarts = (points2[0][0] - points1[0][0], points2[0][1] - points1[0][1])
-	angle = degrees(atan2(vector1[1], vector1[0]))
-	newVector1 = transformPoint(vector1, angle = -angle)
-	newVector2 = transformPoint(vector2, angle = -angle)
-	newStartPoint = transformPoint(vectorBetweenStarts, angle = -angle)
-	newEndPoint = addVectors(newStartPoint, newVector2) 
+def linesCross(L1, L2):
+	L1Vector = (L1[1][0] - L1[0][0], L1[1][1] - L1[0][1])
+	L2Vector = (L2[1][0] - L2[0][0], L2[1][1] - L2[0][1])
+	L2StartVector = (L2[0][0] - L1[0][0], L2[0][1] - L1[0][1])
+	L2EndVector = (L2[1][0] - L1[0][0], L2[1][1] - L1[0][1])
+	angle = degrees(atan2(L1Vector[1], L1Vector[0]))
+	newL1Vector = transformPoint(L1Vector, angle = -angle)
+	# print newL1Vector
+	newL2Start = transformPoint(L2StartVector, angle = -angle)
+	newL2End = transformPoint(L2EndVector, angle = -angle)
 	result = False
 	keepChecking = True
-	if (newStartPoint[1] > 0 and newEndPoint[1] > 0) or (newStartPoint[1] < 0 and newEndPoint[1] < 0):
+	if (newL2Start[1] > 0 and newL2End[1] > 0) or (newL2Start[1] < 0 and newL2End[1] < 0):
 		keepChecking = False
 	if keepChecking:
-		if (newStartPoint[0] > newVector1[0] and newEndPoint[0] > newVector1[0]) or (newStartPoint[0] < 0 and newEndPoint[0] < 0):
+		if (newL2Start[0] > newL1Vector[0] and newL2End[0] > newL1Vector[0]) or (newL2Start[0] < 0 and newL2End[0] < 0):
 			keepChecking = False
 	if keepChecking:
-		line2Angle = degrees(atan2(newVector2[1], newVector2[0]))
-		
+		zeroCrossing = interpolate(0, (newL2Start[1], newL2Start[0]), (newL2End[1], newL2End[0]))
+		if 0 <= zeroCrossing <= newL1Vector[0]:
+			result = True
+	return result
 	
 	
 	

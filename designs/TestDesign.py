@@ -4,71 +4,10 @@ import json
 from shapes.shapeUtils import *
 
 class TestDesign(Design):
+
 	# def build(self):
-		# circle = Circle({
-			# 'centerPoint' : (0, 0),
-			# 'radius' : 2.5
-		
-		# })
-		# arcChain = ArcChain( 'arcChain', [{
-			# 'rotationAngle' : 0,
-			# 'centerPoint' : (0, 0),
-			# 'scaleFactor' : 0.04,
-			# 'growthFactorAdjustment' : 0.75,
-			# 'sweepAngleSpan' : 1000,
-			# 'reverse' : False,
-			# 'id' : 'spiral4'
-		# }])
-		# holes = HolesOnArcChain(arcChain,{
-			# 'holeDistance' : 0.2, 
-			# 'holeRadii' : [0.001, 0.01, 0.2, 0.3],
-			# 'minRadius' : 0.06,
-		# })
-		# spiral = Spiral({
-			# 'rotationAngle' : 0,
-			# 'centerPoint' : (0, 0),
-			# 'scaleFactor' : 0.04,
-			# 'growthFactorAdjustment' : 0.80,
-			# 'sweepAngleSpan' : 1000,
-			# 'reverse' : False,
-			# 'id' : 'spiral4'
-
-		# })
-		# topShape = ShapeGroup('topshape', spiral, spiral.getTransformedCopy(angle = 120), spiral.getTransformedCopy(angle = 240), )
-		# self.shapes.append(topShape)
-		# Design.build(self)
-
-	def build(self):
-		self.shapes = []
-		trace = BranchingShape(Branch2, {
-			'startPoint' : (0, 0),
-			'lengthScaling' : 1,
-			'featureScaling' : 1,
-			'angle' : 90,
-			'depth' : 0,
-			'maxDepth' : 12,
-			'angles' : [70, -70],
-			'directionalitySum' : 0,
-			'featureScalingFactor' : [0.9, 0.9],
-			'lengthScalingFactor' : [0.8, 0.8],
-			'minLengthScaling' : 0.1,
-			'minFeatureScaling' : 0.1,
-			'directionalityAngleAdjustmentExponent' : 1.6,
-			'directionalityAngleAdjustmentFactor' : 2,
-			'distanceLimitingFactor' : 0.08,
-			'skipPercentage' : 25,
-			'baseRadius' : 0.9,
-			'holeRadiiFactors' : [0.2, 0.3, 0.4, 1],
-			'baseLength' : 22.5,
-			'exponentialDistanceLimitingFactor' : 1.1
-
-		})
-		topShape = ShapeGroup('topshape', trace) 
-		self.shapes.append(topShape)
-		Design.build(self)
-		
-	# def build(self):
-		# trace = BranchingShape(CircleNodes, {
+		# self.shapes = []
+		# tree = BranchingShape(CirclesAtNodes, {
 			# 'startPoint' : (0, 0),
 			# 'lengthScaling' : 1.1,
 			# 'featureScaling' : 2,
@@ -85,7 +24,76 @@ class TestDesign(Design):
 			# 'directionalityAngleAdjustmentFactor' : 8,
 			# 'distanceLimitingFactor' : 0.2
 		# })
-		# topShape = ShapeGroup('topshape', trace, trace.getTransformedCopy(angle = 120), trace.getTransformedCopy(angle = 240))
+		# topShape = ShapeGroup('topshape', tree) 
 		# self.shapes.append(topShape)
 		# Design.build(self)
-
+		
+	def build(self):
+		self.shapes = []
+		lengthRatios = [0.5, 0.5, 0.7]
+		topShape = ShapeGroup('topshape')
+		holeDistance = 0.22
+		for sizeIndex in range(5):
+			size = sizeIndex * 1.7 + 3.5
+			holeRadii = [0.16, 0.16 + sizeIndex * 0.003, 0.16 + sizeIndex * 0.005, 0.16 + sizeIndex * 0.02, 0.16]
+			lSide = ArcChain('lSide', [{
+				'startPoint' : (0, 0),
+				'startAngle' : 15,
+				'endAngle' : 55,
+				'radius' : size * lengthRatios[0]
+			},{
+				'angleSpan' : 33,
+				'radius' : size * lengthRatios[1],
+			},
+			{
+				'endPoint' : (0, size * lengthRatios[2]),
+				'noDirectionAlternate' : True
+			}])
+			rSide = ArcChain('rSide', [{
+				'startPoint' : (0, 0),
+				'startAngle' : 165,
+				'endAngle' : 125,
+				'radius' : size * lengthRatios[0],
+				'reverse' : True
+			},{
+				'angleSpan' : 33,
+				'radius' : size * lengthRatios[1],
+			},
+			{
+				'endPoint' : (0, size * lengthRatios[2]),
+				'noDirectionAlternate' : True
+			}])
+			heart = ShapeGroup('heart' + str(size), 
+				HolesOnArcChain(lSide, {
+					'holeDistance' : holeDistance, 
+					'holeRadii' : holeRadii,
+					'minRadius' : 0.08,
+					'id' : 'lHoles'
+				}),
+				HolesOnArcChain(rSide, {
+					'holeDistance' : holeDistance, 
+					'holeRadii' : holeRadii,
+					'minRadius' : 0.08,
+					'id' : 'rHoles'
+				}),
+			)
+			heart.transform(distance=(0, - sizeIndex * 0.7))
+			topShape.addSubShape(heart)
+		spiral = HolesOnArcChain( 
+			ArcChain('spiral', [{
+					'rotationAngle' : 0,
+					'centerPoint' : (7, 0),
+					'scaleFactor' : 0.4,
+					'growthFactorAdjustment' : 0.5,
+					'sweepAngleSpan' : 400,
+					'reverse' : True
+				}]), {
+				'holeDistance' : holeDistance, 
+				'holeRadii' : holeRadii,
+				'minRadius' : 0.08,
+				'id' : 'lHoles'
+			}
+		)
+		topShape.addSubShape(spiral)
+		self.shapes.append(topShape)
+		Design.build(self)

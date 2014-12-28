@@ -14,6 +14,7 @@ class Nautilus3(Design):
 		spiralInterval = spiralAngleSpan + spiralSpacing
 		scaleFactors = (0.125, 0.125)
 		growthFactors = (0.5, 0.707)
+		
 		def makeSegment(innerSizeFactor, outerSizeFactor, startAngle, angleSpan):
 			innerGrowthFactor = interpolate(innerSizeFactor, growthFactors)
 			outerGrowthFactor = interpolate(outerSizeFactor, growthFactors)
@@ -75,6 +76,32 @@ class Nautilus3(Design):
 		while i < 12:
 			makeSegment(0, 1, i * spiralInterval, spiralAngleSpan)
 			i += 1
-		topShape = ShapeGroup('top', spirals)
+		innerBound = Spiral({
+			'rotationAngle' : 0,
+			'sweepStartAngle' : 0,
+			'centerPoint' : (0, 0),
+			'scaleFactor' : 0.125,
+			'growthFactorAdjustment' : 0.48,
+			'sweepAngleSpan' : 12 * spiralInterval + 5,
+			'reverse' : True,
+			'id' : 'innerBound'
+		})
+		outerBound = Spiral({
+			'rotationAngle' : 0,
+			'sweepStartAngle' : 0,
+			'centerPoint' : (0, 0),
+			'scaleFactor' : 0.125,
+			'growthFactorAdjustment' : 0.717,
+			'sweepAngleSpan' : 12 * spiralInterval + 1,
+			'reverse' : True,
+			'id' : 'outerBound'
+		})
+		endArc = Arc({
+			'startPoint' : '%outerBound.endPoint',
+			'startAngle' : '%outerBound.endAngle + 30',
+			'reverse' : False,
+			'endPoint' : '%innerBound.endPoint'
+		})
+		topShape = ShapeGroup('top', spirals)#, innerBound, outerBound, endArc)
 		self.shapes.append(topShape)
 		Design.build(self)
