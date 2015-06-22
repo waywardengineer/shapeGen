@@ -41,18 +41,61 @@ class FerneyTree(Design):
 			'featureScaling' : 2,
 			'angle' : 90,
 			'depth' : 0,
-			'maxDepth' : 8,
+			'maxDepth' : 7,
 			'angles' : [60, 0],
 			'directionalitySum' : 0,
 			'featureScalingFactor' : [0.6, 1, 0.6],
 			'lengthScalingFactor' : [0.48, 0.85, 0.35],
-			'minLengthScaling' : 0.01,
+			'minLengthScaling' : 0.1,
 			'minFeatureScaling' : 0.1,
 			'directionalityAngleAdjustmentExponent' : 1.6,
 			'directionalityAngleAdjustmentFactor' : 8,
-			'distanceLimitingFactor' : 0.2
+			'distanceLimitingFactor' : 0.2,
+			'skipPercentage' : 0,
 		})
 		topShape = ShapeGroup('topshape', trace, trace.getTransformedCopy(angle = 120), trace.getTransformedCopy(angle = 240))
 		self.shapes.append(topShape)
 		Design.build(self)
 
+class Something(Design):
+	def build(self):
+		branch1 = BranchingShape(CirclesAtNodes, {
+			'startPoint' : (0, 0),
+			'lengthScaling' : 0.5,
+			'featureScaling' : 4,
+			'angle' : 90,
+			'depth' : 0,
+			'maxDepth' : 3,
+			'angles' : [55, 0],
+			'directionalitySum' : 0,
+			'featureScalingFactor' : [0.6, 1, 0.6],
+			'lengthScalingFactor' : [0.62, 0.89, 0.35],
+			'minLengthScaling' : 0.1,
+			'minFeatureScaling' : 0.1,
+			'directionalityAngleAdjustmentExponent' : 0.6,
+			'directionalityAngleAdjustmentFactor' : 24,
+			'distanceLimitingFactor' : 0.2,
+			'skipPercentage' : 0,
+		})
+		branch2 = BranchingShape(CirclesAtNodes, {
+			'startPoint' : (0, 0),
+			'lengthScaling' : 0.5,
+			'featureScaling' : 6.48,
+			'angle' : 90,
+			'maxDepth' : 3,
+			'angles' : [55, 0],
+			'featureScalingFactor' : [0.6, 0.9, 0.6],
+			'lengthScalingFactor' : [0.62, 0.89, 0.35],
+			'minLengthScaling' : 0.1,
+			'minFeatureScaling' : 0.1,
+			'directionalityAngleAdjustmentExponent' : 0.6,
+			'directionalityAngleAdjustmentFactor' : 24,
+			'distanceLimitingFactor' : 0.2,
+			'skipPercentage' : 0,
+		})
+		topShape = ShapeGroup(
+			'topshape', branch1, branch1.getTransformedCopy(angle = 120), branch1.getTransformedCopy(angle = 240),
+			branch2, branch2.getTransformedCopy(angle = 120), branch2.getTransformedCopy(angle = 240)
+		)
+		self.shapes.append(topShape)
+		Design.build(self)

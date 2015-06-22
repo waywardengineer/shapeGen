@@ -16,7 +16,7 @@ class ThreeArmThinSpiral(Design):
 			'centerPoint' : (0, 0),
 			'scaleFactor' : 0.5 + 0.1 * self.sizeIndex,
 			'growthFactorAdjustment' : 1.0 - growthFactorDiff/2,
-			'sweepAngleSpan' : 330 + 90 - 13 * self.sizeIndex,
+			'sweepAngleSpan' : 330 + 110 - 13 * self.sizeIndex,
 			'reverse' : True
 		},{
 			'angleSpan' : 25 - 2 * self.sizeIndex,

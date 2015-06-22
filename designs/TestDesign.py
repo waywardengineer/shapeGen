@@ -33,9 +33,11 @@ class TestDesign(Design):
 		lengthRatios = [0.5, 0.5, 0.7]
 		topShape = ShapeGroup('topshape')
 		holeDistance = 0.22
-		for sizeIndex in range(5):
-			size = sizeIndex * 1.7 + 3.5
-			holeRadii = [0.16, 0.16 + sizeIndex * 0.003, 0.16 + sizeIndex * 0.005, 0.16 + sizeIndex * 0.02, 0.16]
+		for sizeIndex in range(3):
+			topX = sizeIndex ** 1.5 * 0.3
+			topY = sizeIndex * 0.4
+			size = sizeIndex * 2 + 3.5
+			holeRadii = [0.08, 0.08 + sizeIndex * 0.003, 0.08 + sizeIndex * 0.005, 0.08 + sizeIndex * 0.02, 0.08]
 			lSide = ArcChain('lSide', [{
 				'startPoint' : (0, 0),
 				'startAngle' : 15,
@@ -46,7 +48,7 @@ class TestDesign(Design):
 				'radius' : size * lengthRatios[1],
 			},
 			{
-				'endPoint' : (0, size * lengthRatios[2]),
+				'endPoint' : (-topX, size * lengthRatios[2] + topY),
 				'noDirectionAlternate' : True
 			}])
 			rSide = ArcChain('rSide', [{
@@ -60,7 +62,7 @@ class TestDesign(Design):
 				'radius' : size * lengthRatios[1],
 			},
 			{
-				'endPoint' : (0, size * lengthRatios[2]),
+				'endPoint' : (topX, size * lengthRatios[2] + topY),
 				'noDirectionAlternate' : True
 			}])
 			heart = ShapeGroup('heart' + str(size), 
