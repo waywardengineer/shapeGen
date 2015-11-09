@@ -63,14 +63,13 @@ def getEndPoint(startPoint, angle, endX = False, endY = False):
 def getAngle(point1, point2):
 	return degrees(atan2(point2[1] - point1[1], point2[0] - point1[0]))
 
-def linesCross(L1, L2):
+def linesCross(L1, L2, allowance = 0):
 	L1Vector = (L1[1][0] - L1[0][0], L1[1][1] - L1[0][1])
 	L2Vector = (L2[1][0] - L2[0][0], L2[1][1] - L2[0][1])
 	L2StartVector = (L2[0][0] - L1[0][0], L2[0][1] - L1[0][1])
 	L2EndVector = (L2[1][0] - L1[0][0], L2[1][1] - L1[0][1])
 	angle = degrees(atan2(L1Vector[1], L1Vector[0]))
 	newL1Vector = transformPoint(L1Vector, angle = -angle)
-	# print newL1Vector
 	newL2Start = transformPoint(L2StartVector, angle = -angle)
 	newL2End = transformPoint(L2EndVector, angle = -angle)
 	result = False
@@ -82,9 +81,13 @@ def linesCross(L1, L2):
 			keepChecking = False
 	if keepChecking:
 		zeroCrossing = interpolate(0, (newL2Start[1], newL2Start[0]), (newL2End[1], newL2End[0]))
-		if 0 <= zeroCrossing <= newL1Vector[0]:
+		if allowance <= zeroCrossing <= (newL1Vector[0] - allowance):
 			result = True
 	return result
 	
-	
+def getOffsetIntersect(angle1, angle2, offsetDistance):
+	intersectAngle = (360 + angle1 + angle2) % 360
+	hypotAngle = (720 + angle1 - intersectAngle - 270) % 360
+	distance = offsetDistance / cos(radians(hypotAngle))
+	return polarToCartesian(intersectAngle, distance)
 	

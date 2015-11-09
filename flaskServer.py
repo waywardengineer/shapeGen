@@ -10,7 +10,8 @@ from designs import *
 # design = AlienSpineCircuitTraces()
 # design = MultiDesign(ThreeArmThinSpiral, 10, 1)
 # design = ThreeSidedPointyThing()
-design = ThreeArmThinSpiral()
+# design = TestDesign()
+design = Something3()
 # design = Something()
 flaskApp = Flask(__name__,  static_folder='jsGui', static_url_path='/jsGui')
 

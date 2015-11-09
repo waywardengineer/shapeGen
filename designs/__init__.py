@@ -1,7 +1,7 @@
 from DesignBase import Design, MultiDesign
 from TestDesign import TestDesign
 from ThreeSidedPointyThing import ThreeSidedPointyThing
-from ThreeArmThinSpiral import ThreeArmThinSpiral
+from ThreeArmThinSpiral import *
 from HoleySpiralArm import HoleySpiralArm
 from Nautilus import Nautilus
 from Nautilus2 import Nautilus2
