@@ -22,6 +22,11 @@ def polarToCartesian(point):
 	angle = radians(point[0])
 	return (cos(angle) * point[1], sin(angle) * point[1])
 
+def cartesianToPolar(point):
+	r = hypot(point[0],  point[1])
+	angle = degrees(atan2(point[1], point[0]))
+	return (angle, r)
+
 def transformPoint(point, angle = 0, distance = (0, 0)):
 	point = (point[0] + distance[0], point[1] + distance[1])
 	currentAngle = atan2(point[1], point[0])
@@ -40,7 +45,10 @@ def subtractVectors(point1, point2):
 	return (point1[0] - point2[0], point1[1] - point2[1])
 
 def interpolate(value, pair1, pair2):
-	if pair2[0] - pair1[0] > 0:
+	value = float(value)
+	pair1 = (float(pair1[0]), float(pair1[1]))
+	pair2 = (float(pair2[0]), float(pair2[1]))
+	if abs(pair2[0] - pair1[0]) > 0:
 		return pair1[1] + (pair2[1] - pair1[1]) * ((value - pair1[0]) / (pair2[0] - pair1[0]))
 	else:
 		return pair1[0]
@@ -84,10 +92,55 @@ def linesCross(L1, L2, allowance = 0):
 		if allowance <= zeroCrossing <= (newL1Vector[0] - allowance):
 			result = True
 	return result
-	
-def getOffsetIntersect(angle1, angle2, offsetDistance):
-	intersectAngle = (360 + angle1 + angle2) % 360
-	hypotAngle = (720 + angle1 - intersectAngle - 270) % 360
+
+def getBranchEndPoints(points, offsetDistance, fromRight):
+	vector = subtractVectors(points[1], points[0])
+	vectorPolar = cartesianToPolar(vector)
+	angle = vectorPolar[0]
+	if fromRight:
+		angles = [angle - 90, angle + 90]
+	else:
+		angles = [angle + 90, angle - 90]
+	pointsOut = []
+	for i in [0, 1]:
+		offsetVector = polarToCartesian((angles[i], offsetDistance))
+		pointsOut.append(addVectors(points[1], offsetVector))
+	return pointsOut
+
+def getOffsetIntersect(points, offsetDistance, fromRight):
+	angles = []
+	for i in [0, 1]:
+		vector = subtractVectors(points[1 + i], points[i])
+		vectorPolar = cartesianToPolar(vector)
+		angles.append(vectorPolar[0])
+	angles[0] += 180
+	if fromRight:
+		angleSubtraction = 90
+	else:
+		angleSubtraction = 270
+	intersectAngle = ((360 + angles[0] + angles[1]) % 360) / 2
+	if fromRight:
+		intersectAngle += 180
+	hypotAngle = (720 + angles[0] - intersectAngle - 270) % 360
 	distance = offsetDistance / cos(radians(hypotAngle))
-	return polarToCartesian(intersectAngle, distance)
-	
+	offsetVector = polarToCartesian((intersectAngle, distance))
+	return addVectors(points[1], offsetVector)
+
+def getTreeEndPoints(points, offsetDistance, fromRight):
+	angles = []
+	for i in [0, 1]:
+		vector = subtractVectors(points[1 + i], points[i])
+		vectorPolar = cartesianToPolar(vector)
+		angles.append(vectorPolar[0])
+	angles[0] += 180
+	intersectAngle = ((360 + angles[0] + angles[1]) % 360) / 2
+	if fromRight:
+		angles = [intersectAngle + 90, intersectAngle - 90]
+	else:
+		angles = [intersectAngle - 90, intersectAngle + 90]
+	pointsOut = []
+	for i in [0, 1]:
+		offsetVector = polarToCartesian((angles[i], offsetDistance))
+		pointsOut.append(addVectors(points[1], offsetVector))
+	return pointsOut
+

@@ -10,7 +10,7 @@ function doInit(){
 		getLatestData();
 	});
 	getLatestData();
-	setInterval(function(){doCommand(['checkForReload'])}, 1000);
+	setInterval(function(){doCommand(['checkForReload'])}, 100000);
 }
 function getLatestData(){
 	$.ajax(settings.serverUrl + 'getData', {

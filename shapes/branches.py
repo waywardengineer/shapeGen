@@ -8,325 +8,232 @@ from HolesOnArcChain import HolesOnArcChain
 
 from Spiral import Spiral
 from random import random
-
-
-class CirclesAtNodes(Shape):
-	defaultParams = {
-		'baseLength' : 10,
-		'branchAngles' : [15, 0, -15],
-		'baseRadius' : 0.25,
-	}
-	def __init__(self, treeData, params):
-		Shape.__init__(self, params)
-		self.crossesLimit = False
-		mainLength = 0.9 * self.p.lengthScaling * self.p.baseLength
-		branchLength = 0.1 * self.p.lengthScaling * self.p.baseLength
-		branchPoint = addVectors(transformPoint((mainLength, 0), self.p.angle), self.p.startPoint)
-		endPoints = []
-		for i in range(len(self.p.branchAngles)):
-			endPoint = addVectors(transformPoint((branchLength, 0), self.p.angle + self.p.branchAngles[i]), branchPoint)
-			endPoints.append(endPoint)
-		radius = self.p.baseRadius * self.p.featureScaling
-		if radius > self.p.minRadius:
-			self.addSubShape(Circle({'radius' : radius, 'centerPoint' : endPoint}))
-		self.p.endPoints = endPoints
-			
-class Lines(Shape):
-	defaultParams = {
-		'baseLength' : 10,
-		'branchAngles' : [60, -60],
-	}
-	def __init__(self, treeData, params):
-		Shape.__init__(self, params)
-		def addLine(startPoint, endPoint):
-			crossesExisting = False
-			for existingLine in treeData['lines']:
-				if linesCross(existingLine, (startPoint, endPoint), 0.0001) or linesCross((startPoint, endPoint), existingLine, 0.0001):
-					crossesExisting = True
-					continue
-			if not crossesExisting:
-				treeData['lines'].append((startPoint, endPoint))
-				self.addSubShape(Line({'startPoint' : startPoint, 'endPoint' : endPoint}))
-			return not crossesExisting
-		mainLength = 1 * self.p.lengthScaling * self.p.baseLength
-		branchLength = 0 * self.p.lengthScaling * self.p.baseLength
-		forkingPoint = addVectors(transformPoint((mainLength, 0), self.p.angle), self.p.startPoint)
-		endPoints = []
-		if not 'lines' in treeData.keys():
-			treeData['lines'] = []
-		if addLine(self.p.startPoint, forkingPoint):
-			for i in range(len(self.p.branchAngles)):
-				endPoint = addVectors(transformPoint((branchLength, 0), self.p.angle + self.p.branchAngles[i]), forkingPoint)
-				if addLine(forkingPoint, endPoint):
-					endPoints.append(endPoint)
-		self.crossesLimit = len(endPoints) == 0
-		self.p.endPoints = endPoints
-
-class OutlinedCurvingTwo(Shape):
-	defaultParams = {
-		'baseLength' : 10,
-		'baseRadius' : 15,
-	}
-	def __init__(self, params):
-		Shape.__init__(self, params)
-		p = self.p
-		p.endPoints = [
-			addVectors(transformPoint((p.baseLength * p.lengthScaling, 0), p.angle + p.angles[0] * 0.25), p.startPoint),
-			addVectors(transformPoint((p.baseLength * p.lengthScaling, 0), p.angle + p.angles[1] * 0.25), p.startPoint),
-		]
-		startArcL = Arc({
-			'startPoint' : p.startPoint,
-			'radius' : 0.1 * p.baseRadius * p.featureScaling,
-			'startAngle' : p.angle - 80,
-			'endAngle' : p.angle - 10,
-			'id' : 'startArcL'
-		})
-		outsideEndArcL = Arc({
-			'startPoint' : subtractVectors(p.endPoints[0], transformPoint((p.baseLength * p.lengthScaling * 0.05, 0), angle = p.angle + p.angles[0])),
-			'radius' : 0.11 * p.baseRadius * p.featureScaling * p.featureScalingFactor[0],
-			'startAngle' : p.angle + p.angles[0] - 90,
-			'endAngle' :p.angle + p.angles[0] - 10,
-			'id' : 'outsideEndArcL'
-		})
-		insideEndArcL = Arc({
-			'startPoint' : '%outsideEndArcL.startPoint',
-			'radius' : '%outsideEndArcL.radius',
-			'startAngle' : '%outsideEndArcL.startAngle+180',
-			'endAngle' : '%startAngle-80',
-			'reverse' : True,
-			'id' : 'insideEndArcL'
-		})
-		mainArcL = Arc({
-			'startPoint' : '%startArcL.endPoint',
-			'endPoint' : '%outsideEndArcL.endPoint',
-			'startAngle' : p.angle - 100
-		})
-		self.addSubShape(startArcL)
-		self.addSubShape(outsideEndArcL)
-		self.addSubShape(insideEndArcL)
-		self.addSubShape(mainArcL)
-		startArcR = Arc({
-			'startPoint' : p.startPoint,
-			'radius' : 0.1 * p.baseRadius * p.featureScaling,
-			'startAngle' : p.angle + 80,
-			'endAngle' : p.angle + 10,
-			'id' : 'startArcR',
-			'reverse' : True
-		})
-		outsideEndArcR = Arc({
-			'startPoint' : subtractVectors(p.endPoints[1], transformPoint((p.baseLength * p.lengthScaling * 0.05, 0), angle = p.angle + p.angles[1])),
-			'radius' : 0.11 * p.baseRadius * p.featureScaling * p.featureScalingFactor[1],
-			'startAngle' : p.angle + p.angles[1] + 90,
-			'endAngle' :p.angle + p.angles[1] -+ 10,
-			'id' : 'outsideEndArcR',
-			'reverse' : True
-		})
-		insideEndArcR = Arc({
-			'startPoint' : '%outsideEndArcR.startPoint',
-			'radius' : '%outsideEndArcR.radius',
-			'startAngle' : '%outsideEndArcR.startAngle+180',
-			'endAngle' : '%startAngle+80',
-			'id' : 'insideEndArcR'
-		})
-		mainArcR = Arc({
-			'startPoint' : '%startArcR.endPoint',
-			'endPoint' : '%outsideEndArcR.endPoint',
-			'startAngle' : p.angle + 100,
-			'reverse' : True
-		})
-		self.addSubShape(startArcR)
-		self.addSubShape(outsideEndArcR)
-		self.addSubShape(insideEndArcR)
-		self.addSubShape(mainArcR)
-		topArc = Arc({
-			'startPoint' : '%insideEndArcL.endPoint',
-			'endPoint' : '%insideEndArcR.endPoint',
-			'startAngle' : p.angle - 30
-		})
-		self.addSubShape(topArc)
-
-class TwoHoleChains(Shape):
-	defaultParams = {
-		'baseLength' : 10,
-		'baseRadius' : 0.9,
-		'holeRadiiFactors' : [0.5, 0.3, 0.4, 1],
-	}
-	def __init__(self, treeData, params):
-		self.crossesLimit = False
-		Shape.__init__(self, params)
-		p = self.p
-		angles = [
-			p.angle + p.angles[0] * 0.5,
-			p.angle + p.angles[1] * 0.5
-		]
-		endPoints = [
-			addVectors(transformPoint((p.baseLength * p.lengthScaling, 0), angles[0]), p.startPoint),
-			addVectors(transformPoint((p.baseLength * p.lengthScaling, 0), angles[1]), p.startPoint),
-		]
-		limitLineStartPoint = addVectors(p.startPoint, transformPoint((0.05 * p.baseLength * p.lengthScaling, 0), p.angle))
-		for endPoint in endPoints:
-			for limitLine in treeData['limitLines']:
-				if linesCross(limitLine, (limitLineStartPoint, endPoint)):
-					self.crossesLimit = True
-				else:
-					if linesCross((limitLineStartPoint, endPoint), limitLine):
-						# self.crossesLimit = True
-						pass
-						# print (p.startPoint, endPoint)
-						# print limitLine
-						# print ''
-		if not self.crossesLimit:
-			offsetVector = (p.baseLength * p.featureScaling * 0.08, p.baseLength * p.featureScaling * 0.03)
-			mainArcL = Arc({
-				'startPoint' : addVectors(p.startPoint, transformPoint(offsetVector, angle = p.angle)),
-				'endPoint' : endPoints[0],
-				'startAngle' : p.angle - 85
-			})
-			offsetVector = (p.baseLength * p.featureScaling * 0.08, -p.baseLength * p.featureScaling * 0.03)
-			mainArcR = Arc({
-				'startPoint' : addVectors(p.startPoint, transformPoint(offsetVector, angle = p.angle)),
-				'endPoint' : endPoints[1],
-				'startAngle' : p.angle + 85,
-				'reverse' : True
-			})
-			# radius = p.baseRadius * p.featureScaling
-			# holeRadii = [radius * factor for factor in p.holeRadiiFactors]
-			# holeDistance = p.baseRadius * p.featureScaling
-			# holesL = HolesOnArcChain(ShapeGroup('L', mainArcL), {
-				# 'holeRadii' : holeRadii,
-				# 'holeDistance' :holeDistance,
-				# 'minRadius' : 0.06
-			# })
-			self.addSubShape(mainArcL)
-			# holesR = HolesOnArcChain(ShapeGroup('R', mainArcR), {
-				# 'holeRadii' : holeRadii,
-				# 'holeDistance' :holeDistance, 
-				# 'minRadius' : 0.06
-			# })
-			self.addSubShape(mainArcR)
-			# mainArcL.calculate()
-			# mainArcR.calculate()
-			p.endPoints = endPoints
-			
-			if p.endNodeRadius:
-				for i in [0, 1]:
-					self.addSubShape(Circle({
-						'centerPoint' : p.endPoints[i],
-						'radius' : p.endNodeRadius * p.secondaryFeatureScaling
-					}))
-					self.addSubShape(Circle({
-						'centerPoint' : p.endPoints[i],
-						'radius' : p.endNodeRadius * p.secondaryFeatureScaling * 0.75
-					}))
-			treeData['limitLines'] += [(p.startPoint, p.endPoints[0]), (p.startPoint, p.endPoints[1])]
-			# if len(holesL.subShapes) > 3:
-				# treeData['limitLines'].append((holesL.subShapes[-1].p.centerPoint, holesR.subShapes[-1].p.centerPoint))
+import json
 
 class BranchingShapeElement(Shape):
 	defaultParams = {
-		'lengthScaling' : 1,
-		'featureScaling' : 1,
-		'secondaryFeatureScaling' : 1,
-		'angle' : 90,
 		'depth' : 0,
-		'maxDepth' : 6,
-		'angles' : [80, -80],
 		'directionalitySum' : 0,
-		'featureScalingFactor' : [0.75, 0.75, 0.75],
-		'secondaryFeatureScalingFactor' : [0.75, 0.75, 0.75],
-		'lengthScalingFactor' : [0.75, 0.75, 0.75],
-		'minLengthScaling' : 0.1,
-		'minFeatureScaling' : 0.1,
-		'directionalityAngleAdjustmentExponent' : 1.7,
-		'directionalityAngleAdjustmentFactor' : 0,
-		'distanceLimitingFactor' : 1.0,
 		'skipPercentage' : 0,
+		'idNum' : 0,
+		'parentCellId' : False,
+		'startPoint' : (0, 0),
 	}
-	def __init__(self, branchClass, treeData, *args):
+	def __init__(self, treeData, *args):
 		Shape.__init__(self, *args)
 		paramVals = {k : self.p[k].value for k in self.p.keys()}
-		branchShape = branchClass(treeData, paramVals)
-		if not branchShape.crossesLimit:
-			self.addSubShape(branchShape)
-			p = self.p 
-			existingEndPoints = copy(treeData['endPoints'])
-			treeData['endPoints'] += [(endPoint, branchShape.p.lengthScaling) for endPoint in branchShape.p.endPoints]
-			treeData['endPoints'].append((branchShape.p.startPoint, branchShape.p.lengthScaling))
-			if p.depth < p.maxDepth and p.lengthScaling > p.minLengthScaling and p.featureScaling > p.minFeatureScaling: 
-				for i in range(len(p.angles)):
-					if existingEndPoints:
-						closestDistance = min([distanceBetween(branchShape.p.endPoints[i], existingEndPoint[0]) * pow(existingEndPoint[1], 1.2) for existingEndPoint in existingEndPoints])
-					else:
-						closestDistance = branchShape.p.baseLength
-					allowableClosestDistance = branchShape.p.baseLength * branchShape.p.lengthScaling * p.lengthScalingFactor[i] * p.distanceLimitingFactor * pow(p.exponentialDistanceLimitingFactor, p.depth)
-					if closestDistance > allowableClosestDistance and 100 * random() > p.skipPercentage:
-						directionalityIncrement = float(len(p.angles) - 1) / 2 - float(i)
-						directionalityAngleAdjustment = pow(abs(p.directionalitySum), p.directionalityAngleAdjustmentExponent) * p.directionalityAngleAdjustmentFactor
-						if p.directionalitySum < 0:
-							directionalityAngleAdjustment =-directionalityAngleAdjustment
-						newParamVals = copy(paramVals)
-						newParamVals['lengthScaling'] *= p.lengthScalingFactor[i] 
-						newParamVals['featureScaling'] *= p.featureScalingFactor[i]
-						newParamVals['secondaryFeatureScaling'] *= p.secondaryFeatureScalingFactor[i]
-						newParamVals['angle'] = p.angle + directionalityAngleAdjustment + p.angles[i]
-						newParamVals['depth'] = p.depth + 1
-						newParamVals['startPoint'] = branchShape.p.endPoints[i]
-						newParamVals['directionalitySum'] += directionalityIncrement
-						self.addSubShape(BranchingShapeElement(branchClass, treeData, newParamVals))
-
-class Lines2(Shape):
-	defaultParams = {
-		'baseLength' : 10,
-		'branchAngles' : [60, -60],
-	}
-	def __init__(self, treeData, params):
-		Shape.__init__(self, params)
-		def addLine(startPoint, endPoint):
-			crossesExisting = False
-			for existingLine in treeData['lines']:
-				if linesCross(existingLine, (startPoint, endPoint), 0.0001) or linesCross((startPoint, endPoint), existingLine, 0.0001):
-					crossesExisting = True
-					continue
-			if not crossesExisting:
-				treeData['lines'].append((startPoint, endPoint))
-				self.addSubShape(Line({'startPoint' : startPoint, 'endPoint' : endPoint}))
-			return not crossesExisting
-		mainLength = 1 * self.p.lengthScaling * self.p.baseLength
-		branchLength = 0 * self.p.lengthScaling * self.p.baseLength
-		forkingPoint = addVectors(transformPoint((mainLength, 0), self.p.angle), self.p.startPoint)
 		endPoints = []
-		if not 'lines' in treeData.keys():
-			treeData['lines'] = []
-		if addLine(self.p.startPoint, forkingPoint):
-			for i in range(len(self.p.branchAngles)):
-				endPoint = addVectors(transformPoint((branchLength, 0), self.p.angle + self.p.branchAngles[i]), forkingPoint)
-				if addLine(forkingPoint, endPoint):
-					endPoints.append(endPoint)
-		self.crossesLimit = len(endPoints) == 0
-		self.p.endPoints = endPoints
+		p = self.p
+		numEndPoints = 0
+		for i in range(len(p.angles)):
+			length = p.lengthScaling * getParam(i, p.lengthScalingFactor)
+			endPoint = addVectors(transformPoint((length, 0), p.angle + p.angles[i]), p.startPoint)
+			crossesExisting = False
+			for cell in [treeData['cells'][k] for k in treeData['cells'].keys()]:
+				existingStartPoint = cell['startPoint']
+				for existingEndPoint in cell['endPoints']:
+					existingLine = (existingStartPoint, existingEndPoint)
+					if linesCross(existingLine, (p.startPoint, endPoint), 0.0001):
+						crossesExisting = True
+						continue
+			if (not crossesExisting) and 100 * random() > p.skipPercentage:
+				if not p.idNum in treeData['cells'].keys():
+					treeData['cells'][p.idNum] = {
+						'shapeObj' : self,
+						'endPoints' : [],
+						'endPointChildIds' : [],
+						'startPoint' : p.startPoint,
+						'parentBranch' : p.parentCellId
+					}
+					if p.parentCellId:
+						treeData['cells'][p.parentCellId[0]]['endPointChildIds'][p.parentCellId[1]] = p.idNum
+				treeData['cells'][p.idNum]['endPoints'].append(endPoint)
+				treeData['cells'][p.idNum]['endPointChildIds'].append(False)
+				if p.depth < p.maxDepth and p.lengthScaling > p.minLengthScaling and p.featureScaling > p.minFeatureScaling: 
+					directionalityIncrement = float(len(p.angles) - 1) / 2 - float(i)
+					directionalityAngleAdjustment = pow(abs(p.directionalitySum), p.directionalityAngleAdjustmentExponent) * p.directionalityAngleAdjustmentFactor
+					if p.directionalitySum < 0:
+						directionalityAngleAdjustment =- directionalityAngleAdjustment
+					newParamVals = copy(paramVals)
+					newParamVals['lengthScaling'] *= getParam(i, p.lengthScalingFactor[i])
+					newParamVals['featureScaling'] *= getParam(i, p.featureScalingFactor[i])
+					newParamVals['angle'] = p.angle + directionalityAngleAdjustment + p.angles[i]
+					newParamVals['depth'] = p.depth + 1
+					newParamVals['startPoint'] = endPoint
+					newParamVals['directionalitySum'] += directionalityIncrement
+					newParamVals['parentCellId'] = (self.p.idNum, numEndPoints)
+					newParamVals['idNum'] = treeData['nextId']
+					treeData['nextId'] += 1
+					self.addSubShape(BranchingShapeElement(treeData, newParamVals))
+				numEndPoints += 1
 
+def getParam(index, param):
+	if isinstance(param, list):
+		return param[index % len(param)]
+	else:
+		return param
 
 class BranchingShape(Shape):
-	def __init__(self, branchClass, *args):
+	_outlines = True
+	_middlelines = True
+	def __init__(self, *args):
 		Shape.__init__(self, *args)
-		treeData = {
-			'endPoints' : [],
-			'limitLines' : []
+		self.treeData = {
+			'cells' : {},
+			'nextId' : 1
 		}
-		if self.p.limitLines:
-			treeData['limitLines'] = self.p.limitLines
-		self.addSubShape(BranchingShapeElement(branchClass, treeData, self.p.dumpValues())) 
+		self.addSubShape(BranchingShapeElement(self.treeData, self.p.dumpValues()))
+		if self._outlines:
+			self.calculateOutlinePoints()
+			self.drawSides()
+		if self._middlelines:
+			self.drawMiddleShapes()
 
 
-class BranchingOutlinedShape(Shape):
-	def __init__(self, branchClass, *args):
-		Shape.__init__(self, *args)
-		treeData = {
-			'endPoints' : [],
-			'limitLines' : []
-		}
-		if self.p.limitLines:
-			treeData['limitLines'] = self.p.limitLines
-		self.addSubShape(BranchingShapeElement(branchClass, treeData, self.p.dumpValues())) 
-		# for limitLine in treeData['limitLines']:
-			# self.addSubShape(Line({'startPoint' : limitLine[0], 'endPoint' : limitLine[1]}))
+	def calculateOutlinePoints(self):
+		currentCellId = 0
+		nextCellId = 0
+		currentBranchIndex = 0
+		nextBranchIndex = 0
+		completed = False
+		reverse = False
+		solveFromRight = self.p.angles[0] < self.p.angles[-1]
+		intersectPoints = []
+		while not completed:
+			currentCell = self.treeData['cells'][currentCellId]
+			isBranchEnd = not reverse and (currentCell['endPointChildIds'][currentBranchIndex] == False)
+			isTreeEnd = reverse and currentCellId == 0 and currentBranchIndex == (len(currentCell['endPoints']) - 1)
+			isFork = False
+			if isTreeEnd:
+				points = getTreeEndPoints(
+					(currentCell['endPoints'][0], currentCell['startPoint'], currentCell['endPoints'][-1]),
+					self.getWidth(currentCellId),
+					solveFromRight
+				)
+				for point in points:
+					intersectPoints.append({
+						'type' : 'treeEnd',
+						'point' : point,
+						'parentBranch' : currentCell['parentBranch']
+					})
+				completed = True
+			elif isBranchEnd:
+				points = getBranchEndPoints(
+					(currentCell['startPoint'], currentCell['endPoints'][currentBranchIndex]),
+					self.getWidth(currentCellId),
+					solveFromRight
+				)
+				for point in points:
+					intersectPoints.append({
+						'type' : 'branchEnd',
+						'point' : point,
+						'parentBranch' : currentCell['parentBranch']
+					})
+				reverse = True
+			if not completed:
+				if reverse:
+					points = [
+						currentCell['endPoints'][currentBranchIndex],
+						currentCell['startPoint']
+					]
+					if (len(currentCell['endPoints']) - 1) > currentBranchIndex: #fork
+						nextBranchIndex = currentBranchIndex + 1
+						nextCellId = currentCellId
+						points.append(currentCell['endPoints'][nextBranchIndex])
+						reverse = False
+						isFork = True
+					else: #backwards to next cell
+						(nextCellId, nextBranchIndex) = currentCell['parentBranch']
+						points.append(self.treeData['cells'][nextCellId]['startPoint'])
+				else:
+					nextCellId = currentCell['endPointChildIds'][currentBranchIndex]
+					nextBranchIndex = 0
+					points = [
+						currentCell['startPoint'],
+						currentCell['endPoints'][currentBranchIndex],
+						self.treeData['cells'][nextCellId]['endPoints'][nextBranchIndex]
+					]
+				point = getOffsetIntersect(points, self.getWidth(currentCellId), solveFromRight)
+				if isFork or reverse:
+					type = 'reversedSide'
+				else:
+					type = 'side'
+				pointData = {
+					'type' : type,
+					'point' : point,
+					'parentBranch' : currentCell['parentBranch']
+				}
+				intersectPoints.append(pointData)
+				currentCellId = nextCellId
+				currentBranchIndex = nextBranchIndex
+		self.treeData['outlinePoints'] = intersectPoints
+		self.drawSides()
+
+	def getWidth(self, cellId):
+		return self.treeData['cells'][cellId]['shapeObj'].p.lengthScaling * 0.05
+
+	def drawSides(self):
+		for i in range(len(self.treeData['outlinePoints'])):
+			thisPoint = self.treeData['outlinePoints'][i]
+			nextPoint = self.treeData['outlinePoints'][(i + 1) % len(self.treeData['outlinePoints'])]
+			self.addSubShape(Line({'startPoint' : thisPoint['point'], 'endPoint' : nextPoint['point']}))
+
+	def drawMiddleShapes(self):
+		for cell in [self.treeData['cells'][k] for k in self.treeData['cells'].keys()]:
+			for endPoint in cell['endPoints']:
+				self.addSubShape(Line({'startPoint' : cell['startPoint'], 'endPoint' : endPoint}))
+
+
+class HoneycombSpiral(BranchingShape):
+	_outlines = True
+	_middlelines = False
+	defaultParams = {
+		'startPoint' : (0, 0),
+		'lengthScaling' : 8,
+		'featureScaling' : 1,
+		'angle' : 90,
+		'maxDepth' : 8,
+		'angles' : [-50, 70],
+		'featureScalingFactor' : [1.15, 0.5],
+		'lengthScalingFactor' : [1.15, 0.5],
+		'minLengthScaling' : 0.1,
+		'minFeatureScaling' : 0,
+		'directionalityAngleAdjustmentExponent' : 0.8,
+		'directionalityAngleAdjustmentFactor' : 1,
+		'skipPercentage' : 0
+	}
+	def getWidth(self, cellId):
+		return 0.01 + self.treeData['cells'][cellId]['shapeObj'].p.lengthScaling * 0.001
+
+	def drawSides(self):
+		for i in range(len(self.treeData['outlinePoints'])):
+			thisPoint = self.treeData['outlinePoints'][i]
+			nextPoint = self.treeData['outlinePoints'][(i + 1) % len(self.treeData['outlinePoints'])]
+			self.addSubShape(Line({'startPoint' : thisPoint['point'], 'endPoint' : nextPoint['point']}))
+
+class newThingey(BranchingShape):
+	_outlines = True
+	_middlelines = True
+	defaultParams = {
+		'startPoint' : (0, 0),
+		'lengthScaling' : 8,
+		'featureScaling' : 1,
+		'angle' : 90,
+		'maxDepth' : 8,
+		'angles' : [-50, 70],
+		'featureScalingFactor' : [1.15, 0.5],
+		'lengthScalingFactor' : [1.15, 0.5],
+		'minLengthScaling' : 0.1,
+		'minFeatureScaling' : 0,
+		'directionalityAngleAdjustmentExponent' : 0.8,
+		'directionalityAngleAdjustmentFactor' : 1,
+		'skipPercentage' : 0
+	}
+	def getWidth(self, cellId):
+		return 0.1 + self.treeData['cells'][cellId]['shapeObj'].p.lengthScaling * 0.001
+
+	def drawSides(self):
+		for i in range(len(self.treeData['outlinePoints'])):
+			thisPoint = self.treeData['outlinePoints'][i]
+			nextPoint = self.treeData['outlinePoints'][(i + 1) % len(self.treeData['outlinePoints'])]
+			self.addSubShape(Line({'startPoint' : thisPoint['point'], 'endPoint' : nextPoint['point']}))
