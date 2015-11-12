@@ -84,7 +84,7 @@ class Params(dict):
 
 	def __getattr__(self, item):
 		if item not in ['resolved', 'dir', 'parent'] and item not in self.dir:
-			if item in self.keys():
+			if item in self:
 				return self[item].value
 			else:
 				return False

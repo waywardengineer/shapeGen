@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from werkzeug.contrib.profiler import ProfilerMiddleware
 from flask import Flask, request, jsonify, Response
 import json
 
@@ -31,4 +32,7 @@ def doCommand():
 	return jsonify({'command' : command, 'result' : function(*requestData)})
 
 if __name__ == '__main__':
+	# flaskApp.config['PROFILE'] = True
+	# flaskApp.wsgi_app = ProfilerMiddleware(flaskApp.wsgi_app, restrictions=[30])
+	# flaskApp.run(debug = True, port=80)
 	flaskApp.run(debug = True, port=80) 

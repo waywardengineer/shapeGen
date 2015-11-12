@@ -44,14 +44,6 @@ def addVectors(point1, point2):
 def subtractVectors(point1, point2):
 	return (point1[0] - point2[0], point1[1] - point2[1])
 
-def interpolate(value, pair1, pair2):
-	value = float(value)
-	pair1 = (float(pair1[0]), float(pair1[1]))
-	pair2 = (float(pair2[0]), float(pair2[1]))
-	if abs(pair2[0] - pair1[0]) > 0:
-		return pair1[1] + (pair2[1] - pair1[1]) * ((value - pair1[0]) / (pair2[0] - pair1[0]))
-	else:
-		return pair1[0]
 
 def avgPoints (*points):
 	result = [sum([points[i][j] for i in range(len(points))]) / len(points) for j in range(len(points[0]))] 
@@ -71,7 +63,18 @@ def getEndPoint(startPoint, angle, endX = False, endY = False):
 def getAngle(point1, point2):
 	return degrees(atan2(point2[1] - point1[1], point2[0] - point1[0]))
 
-def linesCross(L1, L2, allowance = 0):
+def linesCross(L1, L2, allowance = 0, L1WidthPadding = 0.0):
+	for axis in [0, 1]:
+		above = True
+		below = True
+		for L2Point in [0, 1]:
+			for L1Point in [0, 1]:
+				if L1[L1Point][axis] >= L2[L2Point][axis]:
+					below = False
+				if L1[L1Point][axis] <= L2[L2Point][axis]:
+					above = False
+		if above or below:
+			return False
 	L1Vector = (L1[1][0] - L1[0][0], L1[1][1] - L1[0][1])
 	L2Vector = (L2[1][0] - L2[0][0], L2[1][1] - L2[0][1])
 	L2StartVector = (L2[0][0] - L1[0][0], L2[0][1] - L1[0][1])
@@ -80,19 +83,38 @@ def linesCross(L1, L2, allowance = 0):
 	newL1Vector = transformPoint(L1Vector, angle = -angle)
 	newL2Start = transformPoint(L2StartVector, angle = -angle)
 	newL2End = transformPoint(L2EndVector, angle = -angle)
-	result = False
-	keepChecking = True
-	if (newL2Start[1] > 0 and newL2End[1] > 0) or (newL2Start[1] < 0 and newL2End[1] < 0):
-		keepChecking = False
-	if keepChecking:
-		if (newL2Start[0] > newL1Vector[0] and newL2End[0] > newL1Vector[0]) or (newL2Start[0] < 0 and newL2End[0] < 0):
-			keepChecking = False
-	if keepChecking:
-		zeroCrossing = interpolate(0, (newL2Start[1], newL2Start[0]), (newL2End[1], newL2End[0]))
-		if allowance <= zeroCrossing <= (newL1Vector[0] - allowance):
-			result = True
-	return result
+	steps = 10 #should make this bigger for bigger differences in yValue / l2 length 
+	for step in range(steps + 1):
+		yValue = -L1WidthPadding + (float(step) / steps) * 2.0 * L1WidthPadding
+		xCrossing = getXCrossing(yValue, newL2Start, newL2End)
+		if xCrossing is not None and allowance <= xCrossing <= (newL1Vector[0] - allowance):
+			return True
+	return False
 
+def interpolate(value, pair1, pair2): #Probably still totally fucked
+	value = float(value)
+	pair1 = (float(pair1[0]), float(pair1[1]))
+	pair2 = (float(pair2[0]), float(pair2[1]))
+	if abs(pair2[0] - pair1[0]) > 0:
+		return pair1[1] + (pair2[1] - pair1[1]) * ((value - pair1[0]) / (pair2[0] - pair1[0]))
+	else:
+		return pair1[0]
+
+def getXCrossing(yValue, point1, point2):
+	yValue = float(yValue)
+	point1 = (float(point1[0]), float(point1[1]))
+	point2 = (float(point2[0]), float(point2[1]))
+	if not ((point1[1] <= yValue <= point2[1]) or (point2[1] <= yValue <= point1[1])):
+		return None
+	if point1[0] == point2[0]:
+		return point1[0]
+	xRange = point2[0] - point1[0]
+	yRange = point2[1] - point1[1]
+	yDiff = yValue - point1[1]
+	xDiff = (xRange / yRange) * yDiff
+	return point1[0] + xDiff
+
+	
 def getBranchEndPoints(points, offsetDistance, fromRight):
 	vector = subtractVectors(points[1], points[0])
 	vectorPolar = cartesianToPolar(vector)
