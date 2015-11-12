@@ -17,9 +17,9 @@ class BranchingShapeCell(Shape):
 		endPoints = []
 		p = self.p
 		bp = baseShape.p
-		for i in range(len(bp.angles)):
-			branchIndex = bp.angleOrder[i]
-			newBranchAngle = p.angle + baseShape.getBranchAngle(self, i)
+		for angleIndex in range(len(bp.angles)):
+			branchIndex = bp.angleOrder[angleIndex]
+			newBranchAngle = p.angle + baseShape.getBranchAngle(self, angleIndex)
 			if newBranchAngle is not None:
 				length = p.lengthScaling
 				endPoint = addVectors(transformPoint((length, 0), newBranchAngle), p.startPoint)
@@ -37,19 +37,19 @@ class BranchingShapeCell(Shape):
 						treeData['cells'][p.idNum] = {
 							'shapeObj' : self,
 							'endPoints' : [False for j in range(len(bp.angles))],
-							'endPointChildIds' : [False for j in range(len(bp.angles))],
+							'subCellIds' : [False for j in range(len(bp.angles))],
 							'startPoint' : p.startPoint,
 							'superCellId' : p.superCellId
 						}
 						if p.superCellId:
-							treeData['cells'][p.superCellId[0]]['endPointChildIds'][p.superCellId[1]] = p.idNum
+							treeData['cells'][p.superCellId[0]]['subCellIds'][p.superCellId[1]] = p.idNum
 					treeData['cells'][p.idNum]['endPoints'][branchIndex] = endPoint
 					if p.depth < bp.maxDepth and p.lengthScaling > bp.minLengthScaling and p.featureScaling > bp.minFeatureScaling: 
-						directionalityIncrement = float(len(bp.angles) - 1) / 2 - float(i)
+						directionalityIncrement = float(len(bp.angles) - 1) / 2 - float(angleIndex)
 						newParamVals = {
-							'lengthScaling' : p.lengthScaling * getParam(i, bp.lengthScalingFactor),
-							'featureScaling' : p.featureScaling * getParam(i, bp.featureScalingFactor),
-							'angle' : baseShape.getSubCellAngle(self, i, newBranchAngle),
+							'lengthScaling' : p.lengthScaling * getParam(angleIndex, bp.lengthScalingFactor),
+							'featureScaling' : p.featureScaling * getParam(angleIndex, bp.featureScalingFactor),
+							'angle' : baseShape.getSubCellAngle(self, angleIndex, newBranchAngle),
 							'depth' : p.depth + 1,
 							'startPoint' : endPoint,
 							'directionalitySum' : p.directionalitySum + directionalityIncrement,
@@ -104,7 +104,7 @@ class BranchingShape(Shape):
 		intersectPoints = []
 		while not completed:
 			currentCell = self.treeData['cells'][currentCellId]
-			isBranchEnd = not reverse and (currentCell['endPointChildIds'][currentBranchIndex] == False)
+			isBranchEnd = not reverse and (currentCell['subCellIds'][currentBranchIndex] == False)
 			isTreeEnd = reverse and currentCellId == 0 and currentBranchIndex == (len(currentCell['endPoints']) - 1)
 			forkMade = False
 			if isTreeEnd:
@@ -154,7 +154,7 @@ class BranchingShape(Shape):
 							nextCellId, nextBranchIndex = currentCell['superCellId']
 							points.append(self.treeData['cells'][nextCellId]['startPoint'])
 					else:
-						nextCellId = currentCell['endPointChildIds'][currentBranchIndex]
+						nextCellId = currentCell['subCellIds'][currentBranchIndex]
 						nextCell = self.treeData['cells'][nextCellId]
 						nextBranchIndex = 0
 						points = [
