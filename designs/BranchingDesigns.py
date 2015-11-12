@@ -63,7 +63,7 @@ class FerneyTree(Design):
 class Something3(Design):
 	def build(self):
 		self.shapes = []
-		branch = newThingey({
+		branch = HoneycombSpiral({
 		})
 		topShape = ShapeGroup(
 			'topshape', 
