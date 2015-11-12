@@ -89,7 +89,14 @@ class BranchingShape(Shape):
 			self.drawSides()
 		if self._middlelines:
 			self.drawMiddleShapes()
-
+	@staticmethod
+	def countEndpointsUsed(endPointsList):
+		count = 0
+		for endPoint in endPointsList:
+			if endPoint:
+				count += 1
+		return count
+	
 	def calculateOutlinePoints(self):
 		currentCellId = 0
 		nextCellId = 0
@@ -102,11 +109,17 @@ class BranchingShape(Shape):
 		while not completed:
 			currentCell = self.treeData['cells'][currentCellId]
 			isBranchEnd = not reverse and (currentCell.subCellIds[currentBranchIndex] == False)
-			isTreeEnd = reverse and currentCellId == 0 and currentBranchIndex == (len(currentCell.endPoints) - 1)
+			isTreeEnd = reverse and currentCellId == 0 and currentBranchIndex >= (self.countEndpointsUsed(currentCell.endPoints) - 1)
 			forkMade = False
 			if isTreeEnd:
+				endPoint = False
+				index = -1
+				while not endPoint:
+					endPoint = currentCell.endPoints[index]
+					if not endPoint:
+						index -= 1
 				points = getTreeEndPoints(
-					(currentCell.endPoints[0], currentCell.startPoint, currentCell.endPoints[-1]),
+					(currentCell.endPoints[0], currentCell.startPoint, endPoint),
 					self.getJointWidth(currentCell),
 					solveFromRight
 				)
@@ -219,7 +232,7 @@ class HoneycombSpiral(BranchingShape):
 		'maxDepth' : 12,
 		'angles' : [-50, 70],
 		'featureSizeFactor' : [0.75, 0.75],
-		'lengthFactor' : [1.2, 0.4],
+		'lengthFactor' : [1, 0.2],
 		'minLength' : 0.1,
 		'minFeatureSize' : 0,
 		'directionalityExponent' : 0.8,
