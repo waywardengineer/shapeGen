@@ -84,6 +84,10 @@ def linesCross(L1, L2, allowance = 0, L1WidthPadding = 0.0):
 	newL2Start = transformPoint(L2StartVector, angle = -angle)
 	newL2End = transformPoint(L2EndVector, angle = -angle)
 	steps = 10 #should make this bigger for bigger differences in yValue / l2 length 
+	xCrossing = getXCrossing(0, newL2Start, newL2End)
+	if 0 <= xCrossing <= allowance or (newL1Vector[0] - allowance) <= xCrossing <= newL1Vector[0]:
+		#lines intersect and it's allowed
+		return False
 	for step in range(steps + 1):
 		yValue = -L1WidthPadding + (float(step) / steps) * 2.0 * L1WidthPadding
 		xCrossing = getXCrossing(yValue, newL2Start, newL2End)
@@ -110,6 +114,10 @@ def getXCrossing(yValue, point1, point2):
 		return point1[0]
 	xRange = point2[0] - point1[0]
 	yRange = point2[1] - point1[1]
+	if yRange == 0:
+		if point1[1] == yValue:
+			return point1[0]
+		return None
 	yDiff = yValue - point1[1]
 	xDiff = (xRange / yRange) * yDiff
 	return point1[0] + xDiff

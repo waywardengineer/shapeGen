@@ -63,54 +63,110 @@ class FerneyTree(Design):
 class Something3(Design):
 	def build(self):
 		self.shapes = []
-		branch = HoneycombSpiral({
+		commonParams = {
+			'maxDepth': 6,
+			'angles': [-50, 70],
+			'featureSizeFactor': [1.0, 0.6],
+			'featureSize': 2,
+			'lengthFactor': [1.08, 0.8],
+			'length': 5,
+			'minLength': 0.1,
+			'minFeatureSize': 0.6,
+			'directionalityExponent': 0.8,
+			'directionalityFactor': 1,
+		}
+		branch1Params = commonParams.copy()
+		branch1Params.update({
+			'featureSizeFactor': [1.0, 0.6],
+			'featureSize': 2,
 		})
+		branch2Params = commonParams.copy()
+		branch2Params.update({
+			'featureSizeFactor': [0.97, 0.57],
+			'featureSize': 2.8,
+		})
+		branch = HoneycombSpiral(branch1Params)
+		branch2 = HoneycombSpiral(branch2Params)
 		topShape = ShapeGroup(
 			'topshape', 
-			branch
+			branch,
+			branch2
 		)
 		self.shapes.append(topShape)
 		Design.build(self)
 		
-class Chand1(Design):
+
+class Chand2x(Design):
 	def build(self):
-		branch1 = BranchingShape(CirclesAtNodes, {
-			'startPoint' : (0, 0),
-			'lengthScaling' : 0.5,
-			'featureScaling' : 4,
-			'angle' : 90,
-			'depth' : 0,
-			'maxDepth' : 5,
-			'angles' : [55, 0],
-			'directionalitySum' : 0,
-			'featureScalingFactor' : [0.6, 1, 0.6],
-			'lengthScalingFactor' : [0.62, 0.89, 0.35],
-			'minLengthScaling' : 0.1,
-			'minFeatureScaling' : 0.1,
-			'directionalityAngleAdjustmentExponent' : 0.6,
-			'directionalityAngleAdjustmentFactor' : 24,
-			'distanceLimitingFactor' : 0.2,
-			'skipPercentage' : 0,
+		self.shapes = []
+		commonParams = {
+			'maxDepth': 1,
+			'angles': [0, 55],
+			'featureSize': 1,
+			'featureSizeFactor': [1, 0.6],
+			'length': 6,
+			'lengthFactor': [0.91, 0.67],
+			'minLength': 0.1,
+			'minFeatureSize': 0.1,
+			'directionalitySum': 1,
+			'directionalityExponent': 0.6,
+			'directionalityFactor': -20,
+			'skipPercentage': 0,
+		}
+		branch1Params = commonParams.copy()
+		branch1Params.update({
+			'featureSizeFactor': [1.0, 0.6],
+			'featureSize': 1,
 		})
-		branch2 = BranchingShape(CirclesAtNodes, {
-			'startPoint' : (0, 0),
-			'lengthScaling' : 0.5,
-			'featureScaling' : 6.48,
-			'angle' : 90,
-			'maxDepth' : 3,
-			'angles' : [55, 0],
-			'featureScalingFactor' : [0.6, 0.9, 0.6],
-			'lengthScalingFactor' : [0.62, 0.89, 0.35],
-			'minLengthScaling' : 0.1,
-			'minFeatureScaling' : 0.1,
-			'directionalityAngleAdjustmentExponent' : 0.6,
-			'directionalityAngleAdjustmentFactor' : 24,
-			'distanceLimitingFactor' : 0.2,
-			'skipPercentage' : 0,
+		branch2Params = commonParams.copy()
+		branch2Params.update({
+			'featureSizeFactor': [0.92, 0.57],
+			'featureSize': 1.8,
 		})
+		branch1 = ChandBranch(branch1Params)
+		branch2 = ChandBranch(branch2Params)
 		topShape = ShapeGroup(
-			'topshape', branch1, branch1.getTransformedCopy(angle = 120), branch1.getTransformedCopy(angle = 240),
-			branch2, branch2.getTransformedCopy(angle = 120), branch2.getTransformedCopy(angle = 240)
+			'topshape', branch1, branch1.getTransformedCopy(angle=120), branch1.getTransformedCopy(angle=240),
+			branch2, branch2.getTransformedCopy(angle=120), branch2.getTransformedCopy(angle=240)
 		)
 		self.shapes.append(topShape)
 		Design.build(self)
+
+
+class Chand2(Design):
+	def build(self):
+		self.shapes = []
+		commonParams = {
+			'maxDepth': 5 - self.sizeIndex,
+			'angles': [0, 55],
+			'featureSize': 1,
+			'featureSizeFactor': [1, 0.6],
+			'length': 6,
+			'lengthFactor': [0.91, 0.67],
+			'minLength': 0.1,
+			'minFeatureSize': 0.1,
+			'directionalitySum': 1,
+			'directionalityExponent': 0.6,
+			'directionalityFactor': -20,
+			'skipPercentage': 0,
+		}
+		branch1Params = commonParams.copy()
+		branch1Params.update({
+			'featureSizeFactor': [1.0, 0.6],
+			'featureSize': 1,
+		})
+		branch2Params = commonParams.copy()
+		branch2Params.update({
+			'featureSizeFactor': [0.92, 0.57],
+			'featureSize': 1.8 * pow(0.92, self.sizeIndex),
+		})
+		branch1 = ChandBranch(branch1Params)
+		branch2 = ChandBranch(branch2Params)
+		topShape = ShapeGroup(
+			'topshape', branch1, branch1.getTransformedCopy(angle=120), branch1.getTransformedCopy(angle=240),
+			branch2, branch2.getTransformedCopy(angle=120), branch2.getTransformedCopy(angle=240)
+		)
+		self.shapes.append(topShape)
+		Design.build(self)
+
+

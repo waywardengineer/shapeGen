@@ -80,6 +80,24 @@ class Arc(Shape):
 			radius = self.p.radius
 			self.p.startPoint = (centerPoint[0] + radius * cos(startAngleRads), centerPoint[1] + radius * sin(startAngleRads))
 			self.p.endPoint = (centerPoint[0] + radius * cos(endAngleRads), centerPoint[1] + radius * sin(endAngleRads))
+		elif listContains(['startPoint', 'endPoint', 'radius'], self.p.keys()):
+			startPoint = self.p.startPoint
+			endPoint = self.p.endPoint
+			radius = self.p.radius
+			diff = subtractVectors(endPoint, startPoint)
+			chordCenterPoint = addVectors(startPoint, (float(diff[0]) / 2, float(diff[1]) / 2))
+			oppositeLength = distanceBetween(startPoint, chordCenterPoint)
+			if oppositeLength >= radius:
+				print self.p
+				raise Exception('impossible arc measurement combination')
+			triangleTheta = degrees(asin(oppositeLength / radius))
+			rotatedOppositeAngle = getAngle(startPoint, endPoint)
+			rotatedBaseAngle = rotatedOppositeAngle + 90
+			startAngle = 180 + rotatedBaseAngle - triangleTheta
+			centerPointVector = transformPoint((radius, 0), angle=(startAngle+180))
+			self.p.centerPoint = addVectors(startPoint, centerPointVector)
+			self.p.startAngle = startAngle
+			self.p.endAngle = getAngle(self.p.centerPoint, endPoint)
 		else:
 			print self.p
 			raise Exception('No valid combination of arc data')

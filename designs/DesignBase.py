@@ -4,12 +4,13 @@ import json
 from copy import copy
 
 class Design(object):
-	def __init__(self):
+	def __init__(self, sizeIndex=0):
 		self.fileName = 'output.dxf'
 		self.paramDirectory = {}
 		self.modifiedParams = {}
 		self.shapes = []
 		self.justLoaded = True
+		self.sizeIndex = sizeIndex
 
 	def saveToFile(self):
 		self.drawing = dxf.drawing(self.fileName)
@@ -50,6 +51,9 @@ class Design(object):
 		result = self.justLoaded
 		self.justLoaded = False
 		return result
+
+
+
 
 class MultiDesign(Design):
 	def __init__(self, designClass, count, increment):

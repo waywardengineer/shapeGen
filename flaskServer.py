@@ -12,7 +12,8 @@ from designs import *
 # design = MultiDesign(ThreeArmThinSpiral, 10, 1)
 # design = ThreeSidedPointyThing()
 # design = TestDesign()
-design = Something3()
+design = MultiDesign(Chand2, 6, 1)
+#design = Chand2()
 # design = Something()
 flaskApp = Flask(__name__,  static_folder='jsGui', static_url_path='/jsGui')
 

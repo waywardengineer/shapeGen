@@ -19,10 +19,12 @@ class BranchingShapeCell(Shape):
 		p.endPoints = [False for j in range(len(bp.angles))]
 		p.subCellIds = [False for j in range(len(bp.angles))]
 		for angleIndex in range(len(bp.angles)):
+			length = p.length * getParam(angleIndex, bp.lengthFactor)
 			branchIndex = bp.angleOrder[angleIndex] #relates to where things physically are on the tree
-			newBranchAngle = p.angle + baseShape.getBranchAngle(self, angleIndex)
-			if newBranchAngle is not None: #getBranchAngle should return none when it wants to randomly skip a branch
-				endPoint = addVectors(transformPoint((p.length, 0), newBranchAngle), p.startPoint)
+			branchAngle = baseShape.getBranchAngle(self, angleIndex)
+			if branchAngle is not None: #getBranchAngle should return none when it wants to randomly skip a branch
+				newBranchAngle = p.angle + branchAngle
+				endPoint = addVectors(transformPoint((length, 0), newBranchAngle), p.startPoint)
 				crossesExisting = False
 				for cell in [treeData['cells'][k] for k in treeData['cells']]:
 					existingStartPoint = cell.startPoint
@@ -44,7 +46,7 @@ class BranchingShapeCell(Shape):
 				if p.depth < bp.maxDepth and p.length > bp.minLength and p.featureSize > bp.minFeatureSize: 
 					directionalityIncrement = float(len(bp.angles) - 1) / 2 - float(branchIndex) #linearly increases as things get more offcenter
 					newParamVals = {
-						'length' : p.length * getParam(angleIndex, bp.lengthFactor),
+						'length' : length,
 						'featureSize' : p.featureSize * getParam(angleIndex, bp.featureSizeFactor),
 						'angle' : baseShape.getSubCellAngle(p, newBranchAngle, angleIndex),
 						'depth' : p.depth + 1,
@@ -83,6 +85,12 @@ class BranchingShape(Shape):
 		}
 		if self.p.angles:
 			self.p.angleOrder = getIndexOrder(self.p.angles)
+		if self.p.featureSize:
+			self.defaultCellParams['featureSize'] = self.p.featureSize
+		if self.p.length:
+			self.defaultCellParams['length'] = self.p.length
+		if self.p.directionalitySum:
+			self.defaultCellParams['directionalitySum'] = self.p.directionalitySum
 		self.addSubShape(BranchingShapeCell(self, self.defaultCellParams))
 		if self._outlines:
 			self.calculateOutlinePoints()
@@ -127,7 +135,7 @@ class BranchingShape(Shape):
 					intersectPoints.append({
 						'type' : 'treeEnd',
 						'point' : point,
-						'superCellId' : currentCell.superCellId
+						'cell' : currentCell
 					})
 				completed = True
 			elif isBranchEnd:
@@ -140,7 +148,7 @@ class BranchingShape(Shape):
 					intersectPoints.append({
 						'type' : 'branchEnd',
 						'point' : point,
-						'superCellId' : currentCell.superCellId
+						'cell' : currentCell
 					})
 				reverse = True
 			if not completed:
@@ -185,7 +193,7 @@ class BranchingShape(Shape):
 					pointData = {
 						'type' : type,
 						'point' : point,
-						'superCellId' : currentCell.superCellId
+						'cell' : currentCell
 					}
 					intersectPoints.append(pointData)
 				else:
@@ -222,38 +230,119 @@ class BranchingShape(Shape):
 			directionalityAngleAdjustment =- directionalityAngleAdjustment
 		return branchAngle + directionalityAngleAdjustment
 
-	def getBranchAngle(self, cellId, branchIndex):
-		return self.p.angles[branchIndex]
+	def getBranchAngle(self, cellId, angleIndex):
+		return self.p.angles[angleIndex]
+
+
+class ChandBranch(BranchingShape):
+	_outlines = False
+	_middlelines = True
+	defaultParams = {
+		'maxDepth': 5,
+		'angles': [0, 55],
+		'featureSize': 1,
+		'featureSizeFactor': [1, 0.6],
+		'length': 6,
+		'lengthFactor': [0.91, 0.63],
+		'minLength': 0.1,
+		'minFeatureSize': 0.1,
+		'directionalitySum': 1,
+		'directionalityExponent': 0.6,
+		'directionalityFactor': -20,
+		'skipPercentage': 0,
+	}
+	def getClearanceWidth(self, cell):
+		return self.getJointWidth(cell) * 0.9
+	def drawMiddleShapes(self):
+		for cell in [self.treeData['cells'][k] for k in self.treeData['cells'].keys()]:
+			self.addSubShape(Circle({'centerPoint' : cell.startPoint, 'radius' : cell.featureSize}))
+			for endPoint in cell.endPoints:
+				print endPoint
+				if endPoint:
+					self.addSubShape(Line({'startPoint': cell.startPoint, 'endPoint': endPoint}))
+
 
 class HoneycombSpiral(BranchingShape):
+	_outlines = False
+	_middlelines = True
+	defaultParams = {
+		'maxDepth': 6,
+		'angles': [-50, 70],
+		'featureSizeFactor': [1.0, 0.6],
+		'featureSize': 2,
+		'lengthFactor': [1.08, 0.8],
+		'length': 5,
+		'minLength': 0.1,
+		'minFeatureSize': 0.5,
+		'directionalityExponent': 0.8,
+		'directionalityFactor': 1,
+	}
+	def getClearanceWidth(self, cell):
+		return self.getJointWidth(cell) * 0.9
+	def drawMiddleShapes(self):
+		for cell in [self.treeData['cells'][k] for k in self.treeData['cells'].keys()]:
+			self.addSubShape(Circle({'centerPoint' : cell.startPoint, 'radius' : cell.featureSize}))
+
+
+class HoneycombSpiral2(BranchingShape):
+	_outlines = False
+	_middlelines = True
+	defaultParams = {
+		'maxDepth': 6,
+		'angles': [-50, 70],
+		'featureSizeFactor': [1.15, 0.6],
+		'lengthFactor': [1.15, 0.6],
+		'minLength': 0.1,
+		'minFeatureSize': 0,
+		'directionalityExponent': 0.8,
+		'directionalityFactor': 1,
+	}
+	def getClearanceWidth(self, cell):
+		return self.getJointWidth(cell) * 0.9
+	def drawMiddleShapes(self):
+		for cell in [self.treeData['cells'][k] for k in self.treeData['cells'].keys()]:
+			self.addSubShape(Circle({'centerPoint' : cell.startPoint, 'radius' : cell.featureSize}))
+
+
+class newThingey(BranchingShape):
+	defaultCellParams = {
+		'startPoint' : (0, 0),
+		'length' : 8,
+		'featureSize' : 12,
+		'angle' : 90,
+		'depth' : 0,
+		'directionalitySum' : 0,
+		'cellId' : 0,
+		'superCellId' : False,
+	}
 	_outlines = True
 	_middlelines = False
 	defaultParams = {
-		'maxDepth' : 12,
-		'angles' : [-50, 70],
-		'featureSizeFactor' : [0.75, 0.75],
-		'lengthFactor' : [1, 0.2],
-		'minLength' : 0.1,
-		'minFeatureSize' : 0,
-		'directionalityExponent' : 0.8,
-		'directionalityFactor' : 1,
-		'skipPercentage' : 0,
-	}
-
-class newThingey(BranchingShape):
-	_outlines = True
-	_middlelines = True
-	defaultParams = {
 		'maxDepth' : 6,
-		'angles' : [50, 0],
-		'featureSizeFactor' : [1.15, 0.5],
-		'lengthFactor' : [1.15, 0.6],
+		'angles' : [20, -30, 0],
+		'featureSizeFactor' : [1.15, 0.6, 0.5],
+		'lengthFactor' : [1.15, 0.6, 0.5],
 		'minLength' : 0.1,
 		'minFeatureSize' : 0,
-		'directionalityExponent' : 0.8,
+		'directionalityExponent' : 0.7,
 		'directionalityFactor' : 1,
 		'skipPercentage' : 0,
 	}
+	def getBranchAngle(self, cellId, angleIndex):
+		if random() * 100 < 10:
+			return None
+		return self.p.angles[angleIndex]
+
+	def drawSides(self):
+		for i in range(len(self.treeData['outlinePoints'])):
+			thisPoint = self.treeData['outlinePoints'][i]
+			nextPoint = self.treeData['outlinePoints'][(i + 1) % len(self.treeData['outlinePoints'])]
+			if nextPoint['type'] == 'side':
+				self.addSubShape(Arc({'startPoint' : thisPoint['point'], 'endPoint': nextPoint['point'], 'radius': thisPoint['cell'].featureSize}))
+			elif nextPoint['type'] == 'reversedSide':
+				self.addSubShape(Arc({'startPoint' : nextPoint['point'], 'endPoint': thisPoint['point'], 'radius': thisPoint['cell'].featureSize}))
+			else:
+				self.addSubShape(Line({'startPoint' : thisPoint['point'], 'endPoint': nextPoint['point']}))
 
 
 def randomAngle(center, range):
@@ -261,11 +350,11 @@ def randomAngle(center, range):
 
 def getIndexOrder(l):
 	valuesWithIndexes = [(v, i) for i, v in enumerate(l)]
-	result = []
-	while len(valuesWithIndexes) > 0:
+	result = [None for i in range(len(l))]
+	for i in range(len(l)):
 		pair = min(valuesWithIndexes)
-		result.append(pair[1])
+		result[pair[1]] = i
 		valuesWithIndexes.remove(pair)
 	return result
 		
-		
+

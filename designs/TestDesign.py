@@ -8,27 +8,25 @@ class TestDesign(Design):
 		
 	def build(self):
 		self.shapes = []
-		innerSpiral = Spiral({
-			'rotationAngle' : 0,
-			'sweepStartAngle' : 0,
-			'centerPoint' : (0, 0),
-			'scaleFactor' : 0.4,
-			'growthFactorAdjustment' : 0.4,
-			'sweepAngleSpan' : 720,
-			'reverse' : True,
-			'id' : 'innerSpiral'
+		arc = Arc({
+			'startPoint' : (0, -1),
+			'endPoint' : (1, 0),
+			'radius' : 0.8,
+			'id' : 'arc1'
 		})
-		outerSpiral = Spiral({
-			'rotationAngle' : 0,
-			'sweepStartAngle' : 0,
-			'centerPoint' : (0, 0),
-			'scaleFactor' : 0.7,
-			'growthFactorAdjustment' : 0.45,
-			'sweepAngleSpan' : 720,
-			'reverse' : True,
-			'id' : 'outerSpiral'
+		xLine = Line({
+			'startPoint' : (0, 0),
+			'endPoint' : (5, 0)
 		})
-		topShape = ShapeGroup('top', innerSpiral, outerSpiral)
+		yLine = Line({
+			'startPoint' : (0, 0),
+			'endPoint' : (0, 5)
+		})
+		circle = Circle({
+			'centerPoint' : '%arc1.centerPoint',
+			'radius' : 0.1
+		})
+		topShape = ShapeGroup('top', arc, xLine, yLine, circle)
 		self.shapes.append(topShape)
 		Design.build(self)
 
