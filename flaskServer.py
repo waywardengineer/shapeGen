@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from werkzeug.contrib.profiler import ProfilerMiddleware
+#from werkzeug.contrib.profiler import ProfilerMiddleware
 from flask import Flask, request, jsonify, Response
 import json
 
@@ -8,13 +8,13 @@ from designs import *
 # design = Nautilus()
 # design = Nautilus2()
 # design = SpiraleyHolePanel()
-# design = AlienSpineCircuitTraces()
+design = AlienSpineCircuitTraces()
 # design = MultiDesign(ThreeArmThinSpiral, 10, 1)
 # design = ThreeSidedPointyThing()
 # design = TestDesign()
-design = MultiDesign(Chand2, 6, 1)
+# design = MultiDesign(Chand2, 6, 1)
 #design = Chand2()
-# design = Something()
+#design = Something()
 flaskApp = Flask(__name__,  static_folder='jsGui', static_url_path='/jsGui')
 
 @flaskApp.route('/')

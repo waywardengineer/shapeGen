@@ -1,7 +1,7 @@
 from math import sin, cos, radians, pi, atan2, hypot, e, degrees, asin
 from copy import deepcopy, copy
 from dxfwrite import DXFEngine as dxf
-from shapeUtils import *
+from .shapeUtils import *
 
 minLineSize = 0.03
 
@@ -16,14 +16,14 @@ class Param(object):
 			if isinstance(self.value, tuple):
 				newValues = []
 				for value in self.value:
-					if isinstance(value, basestring):
+					if isinstance(value, str):
 						newSuccess, value = self.getParamVal(value, parent)
 						success = newSuccess and success
 					newValues.append(value)
 				if success:
 					self.value = tuple(newValues)
 			else:
-				if isinstance(self.value, basestring):
+				if isinstance(self.value, str):
 					success, value = self.getParamVal(self.value, parent)
 					if success:
 						self.value = value
@@ -47,7 +47,7 @@ class Param(object):
 			if len(chunk) > 0 and chunk[0] == '%':
 				identifier = chunk[1:].split('.')
 				result = parent.doParamSearch(identifier)
-				if result is None or isinstance(result, basestring):
+				if result is None or isinstance(result, str):
 					error = True
 				else:
 					chunks[i] = str(result)
@@ -63,11 +63,11 @@ class Params(dict):
 		self.resolved = False
 		self.dir = dir(self)
 		self.parent = parent
-		for key in params.keys():
+		for key in list(params.keys()):
 			self.__setattr__(key, params[key])
 
 	def resolve(self):
-		pendingKeys = self.keys()
+		pendingKeys = list(self.keys())
 		numPendingKeys = len(pendingKeys)
 		finished = False
 		while not finished:
@@ -92,7 +92,7 @@ class Params(dict):
 	def __setattr__(self, item, value):
 		if item not in ['resolved', 'dir', 'parent'] and item not in self.dir:
 			if item in ['id', 'type', 'traceClass']:
-				type = basestring
+				type = str
 			elif item in ['reverse']:
 				type = bool
 			else:
@@ -102,13 +102,13 @@ class Params(dict):
 			dict.__setattr__(self, item, value)
 
 	def getCopy(self, newParent):
-		return Params(newParent, {k: self[k].value for k in self.keys()})
+		return Params(newParent, {k: self[k].value for k in list(self.keys())})
 
 	def printValues(self):
-		print self.dumpValues()
+		print(self.dumpValues())
 
 	def dumpValues(self):
-		return {k : self[k].value for k in self.keys()}
+		return {k : self[k].value for k in list(self.keys())}
 
 class Transforms(list):
 	def getCopy(self):
@@ -116,7 +116,7 @@ class Transforms(list):
 
 	def printValues(self):
 		values = [(t[0].value, t[1].value) for t in self]
-		print values
+		print(values)
 
 
 class Shape(object):
@@ -162,10 +162,10 @@ class Shape(object):
 				angle = transform[0].value
 				distance = transform[1].value
 				for key in ['startPoint', 'endPoint', 'centerPoint']:
-					if key in self.p.keys():
+					if key in list(self.p.keys()):
 						self.updateParam(key, transformPoint(self.p[key].value, angle, distance))
 				for key in ['startAngle', 'endAngle', 'rotationAngle']:
-					if key in self.p.keys():
+					if key in list(self.p.keys()):
 						self.updateParam(key, self.p[key].value + angle)
 			else:
 				self.p.printValues()
@@ -228,8 +228,8 @@ class Shape(object):
 		identifier = deepcopy(identifier)
 		result = self.doParamSubsearch(identifier, False, 0)
 		if result[0] is None:
-			print 'Failed finding param'
-			print identifier
+			print('Failed finding param')
+			print(identifier)
 		return result[0]
 
 	def doParamSubsearch(self, identifier, downOnly, distance):
@@ -237,13 +237,13 @@ class Shape(object):
 			return (None, distance)
 		self.pChecked = True
 		if len(identifier) == 1:
-			if identifier[0] in self.p.keys():
+			if identifier[0] in list(self.p.keys()):
 				return (self.p[identifier[0]].value, distance)
 			else:
 				return (None, distance)
 		if len(identifier) == 2:
 			if identifier[0] == self.p.id:
-				if identifier[1] in self.p.keys():
+				if identifier[1] in list(self.p.keys()):
 					return (self.p[identifier[1]].value, distance)
 				else:
 					return (None, distance)

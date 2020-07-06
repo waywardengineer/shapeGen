@@ -1,9 +1,9 @@
 from math import sin, cos, radians, pi, atan2, hypot, e, degrees, asin
 from copy import deepcopy, copy
 from dxfwrite import DXFEngine as dxf
-from shapeUtils import *
-from shapeBases import *
-from shapes import *
+from .shapeUtils import *
+from .shapeBases import *
+from .shapes import *
 
 class CurvyCircuitTrace(Shape):
 	def calculate(self):

@@ -1,4 +1,4 @@
-from DesignBase import Design
+from .DesignBase import Design
 from shapes import *
 import json
 

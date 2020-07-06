@@ -1,12 +1,12 @@
 from math import sin, cos, radians, pi, atan2, hypot, e, degrees, asin, tan
 from copy import deepcopy, copy
 from dxfwrite import DXFEngine as dxf
-from shapeUtils import *
-from shapeBases import *
-from shapes import *
-from HolesOnArcChain import HolesOnArcChain
+from .shapeUtils import *
+from .shapeBases import *
+from .shapes import *
+from .HolesOnArcChain import HolesOnArcChain
 
-from Spiral import Spiral
+from .Spiral import Spiral
 from random import random
 import json
 
@@ -217,7 +217,7 @@ class BranchingShape(Shape):
 			self.addSubShape(Line({'startPoint' : thisPoint['point'], 'endPoint' : nextPoint['point']}))
 
 	def drawMiddleShapes(self):
-		for cell in [self.treeData['cells'][k] for k in self.treeData['cells'].keys()]:
+		for cell in [self.treeData['cells'][k] for k in list(self.treeData['cells'].keys())]:
 			for endPoint in cell.endPoints:
 				if endPoint:
 					self.addSubShape(Line({'startPoint' : cell.startPoint, 'endPoint' : endPoint}))
@@ -254,10 +254,10 @@ class ChandBranch(BranchingShape):
 	def getClearanceWidth(self, cell):
 		return self.getJointWidth(cell) * 0.9
 	def drawMiddleShapes(self):
-		for cell in [self.treeData['cells'][k] for k in self.treeData['cells'].keys()]:
+		for cell in [self.treeData['cells'][k] for k in list(self.treeData['cells'].keys())]:
 			self.addSubShape(Circle({'centerPoint' : cell.startPoint, 'radius' : cell.featureSize}))
 			for endPoint in cell.endPoints:
-				print endPoint
+				print(endPoint)
 				if endPoint:
 					self.addSubShape(Line({'startPoint': cell.startPoint, 'endPoint': endPoint}))
 
@@ -280,7 +280,7 @@ class HoneycombSpiral(BranchingShape):
 	def getClearanceWidth(self, cell):
 		return self.getJointWidth(cell) * 0.9
 	def drawMiddleShapes(self):
-		for cell in [self.treeData['cells'][k] for k in self.treeData['cells'].keys()]:
+		for cell in [self.treeData['cells'][k] for k in list(self.treeData['cells'].keys())]:
 			self.addSubShape(Circle({'centerPoint' : cell.startPoint, 'radius' : cell.featureSize}))
 
 
@@ -300,7 +300,7 @@ class HoneycombSpiral2(BranchingShape):
 	def getClearanceWidth(self, cell):
 		return self.getJointWidth(cell) * 0.9
 	def drawMiddleShapes(self):
-		for cell in [self.treeData['cells'][k] for k in self.treeData['cells'].keys()]:
+		for cell in [self.treeData['cells'][k] for k in list(self.treeData['cells'].keys())]:
 			self.addSubShape(Circle({'centerPoint' : cell.startPoint, 'radius' : cell.featureSize}))
 
 

@@ -1,9 +1,9 @@
 from math import sin, cos, radians, pi, atan2, hypot, e, degrees, asin
 from copy import deepcopy, copy
 from dxfwrite import DXFEngine as dxf
-from shapeUtils import *
-from shapeBases import *
-from shapes import Circle
+from .shapeUtils import *
+from .shapeBases import *
+from .shapes import Circle
 class HolesOnArcChain(Shape):
 	def __init__(self, arcChain, *args):
 		Shape.__init__(self, *args)

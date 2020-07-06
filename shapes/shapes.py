@@ -1,9 +1,9 @@
 from math import sin, cos, radians, pi, atan2, hypot, e, degrees, asin, tan
 from copy import deepcopy, copy
 from dxfwrite import DXFEngine as dxf
-from shapeUtils import *
-from shapeBases import *
-from Spiral import Spiral
+from .shapeUtils import *
+from .shapeBases import *
+from .Spiral import Spiral
 from random import random
 
 class ShapeGroup(Shape):
@@ -34,7 +34,7 @@ class Arc(Shape):
 	def calculate(self, *args): #takes [startPoint, startAngle, endPoint] or [startPoint, startAngle, radius, endAngle] or [centerPoint, radius, startAngle, endAngle]
 		if self.calculated:
 			pass
-		elif listContains(['startPoint', 'startAngle', 'endPoint'], self.p.keys()):
+		elif listContains(['startPoint', 'startAngle', 'endPoint'], list(self.p.keys())):
 			startPoint = self.p.startPoint
 			startAngleRads = radians(self.p.startAngle)
 			endPoint = self.p.endPoint
@@ -55,7 +55,7 @@ class Arc(Shape):
 			self.p.radius = radius
 			self.p.centerPoint = centerPoint
 			self.p.endAngle = degrees(endAngleRads)
-		elif listContains(['startPoint', 'startAngle', 'radius', 'endAngle'], self.p.keys()):
+		elif listContains(['startPoint', 'startAngle', 'radius', 'endAngle'], list(self.p.keys())):
 			startPoint = self.p.startPoint
 			startAngleRads = radians(self.p.startAngle)
 			endAngleRads = radians(self.p.endAngle)
@@ -64,7 +64,7 @@ class Arc(Shape):
 			endPoint = (centerPoint[0] + radius * cos(endAngleRads), centerPoint[1] + radius * sin(endAngleRads))
 			self.p.centerPoint = centerPoint
 			self.p.endPoint = endPoint
-		elif listContains(['endPoint', 'startAngle', 'radius', 'endAngle'], self.p.keys()):
+		elif listContains(['endPoint', 'startAngle', 'radius', 'endAngle'], list(self.p.keys())):
 			endPoint = self.p.endPoint
 			startAngleRads = radians(self.p.startAngle)
 			endAngleRads = radians(self.p.endAngle)
@@ -73,14 +73,14 @@ class Arc(Shape):
 			startPoint = (centerPoint[0] + radius * cos(startAngleRads), centerPoint[1] + radius * sin(startAngleRads))
 			self.p.centerPoint = centerPoint
 			self.p.startPoint = startPoint
-		elif listContains(['centerPoint', 'radius', 'startAngle', 'endAngle'], self.p.keys()):
+		elif listContains(['centerPoint', 'radius', 'startAngle', 'endAngle'], list(self.p.keys())):
 			centerPoint = self.p.centerPoint
 			startAngleRads = radians(self.p.startAngle)
 			endAngleRads = radians(self.p.endAngle)
 			radius = self.p.radius
 			self.p.startPoint = (centerPoint[0] + radius * cos(startAngleRads), centerPoint[1] + radius * sin(startAngleRads))
 			self.p.endPoint = (centerPoint[0] + radius * cos(endAngleRads), centerPoint[1] + radius * sin(endAngleRads))
-		elif listContains(['startPoint', 'endPoint', 'radius'], self.p.keys()):
+		elif listContains(['startPoint', 'endPoint', 'radius'], list(self.p.keys())):
 			startPoint = self.p.startPoint
 			endPoint = self.p.endPoint
 			radius = self.p.radius
@@ -88,7 +88,7 @@ class Arc(Shape):
 			chordCenterPoint = addVectors(startPoint, (float(diff[0]) / 2, float(diff[1]) / 2))
 			oppositeLength = distanceBetween(startPoint, chordCenterPoint)
 			if oppositeLength >= radius:
-				print self.p
+				print(self.p)
 				raise Exception('impossible arc measurement combination')
 			triangleTheta = degrees(asin(oppositeLength / radius))
 			rotatedOppositeAngle = getAngle(startPoint, endPoint)
@@ -99,7 +99,7 @@ class Arc(Shape):
 			self.p.startAngle = startAngle
 			self.p.endAngle = getAngle(self.p.centerPoint, endPoint)
 		else:
-			print self.p
+			print(self.p)
 			raise Exception('No valid combination of arc data')
 		if not self.calculated:
 			if self.p.reverse:
@@ -167,7 +167,7 @@ class ArcChain(ShapeGroup):
 	def __init__(self, id, definitions):
 		ShapeGroup.__init__(self,id)
 		for i, definition in enumerate(definitions):
-			if 'growthFactorAdjustment' in definition.keys():
+			if 'growthFactorAdjustment' in list(definition.keys()):
 				shape = Spiral(definition)
 			else:
 				shape = Arc(definition)

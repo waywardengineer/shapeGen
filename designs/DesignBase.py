@@ -24,7 +24,7 @@ class Design(object):
 		with open (self.fileName, "r") as file:
 			drawingContents = file.read()
 		paramDataList = []
-		for id in self.paramDirectory.keys():
+		for id in list(self.paramDirectory.keys()):
 			item = self.paramDirectory[id]
 			paramDataList += [{'id' : id + ':' + k, 'value' : item['object'].p[k].value} for k in item['changeableParams']]
 		data = {
@@ -38,7 +38,7 @@ class Design(object):
 		for shape in self.shapes:
 			paramDirectoryList += shape.getParamDirectory()
 		self.paramDirectory = {d['id'] : d for d in paramDirectoryList}
-		for id in self.modifiedParams.keys():
+		for id in list(self.modifiedParams.keys()):
 			(objectId, paramId) = id.split(':')
 			self.paramDirectory[objectId]['object'].updateParam(paramId, self.modifiedParams[id])
 		for shape in self.shapes:

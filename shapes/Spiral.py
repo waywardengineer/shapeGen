@@ -1,8 +1,8 @@
 from math import sin, cos, radians, pi, atan2, hypot, e, degrees, asin
 from copy import deepcopy, copy
 from dxfwrite import DXFEngine as dxf
-from shapeUtils import *
-from shapeBases import *
+from .shapeUtils import *
+from .shapeBases import *
 
 class Spiral(Shape):
 	def getRadius(self, angleFromStart):
@@ -28,7 +28,7 @@ class Spiral(Shape):
 				angleFromStart = self.p.sweepEndAngle
 			finished = angleFromStart >= self.p.sweepEndAngle
 			radius = self.getRadius(angleFromStart)
-			if not ('minRadius' in self.p.keys() and radius < self.p.minRadius):
+			if not ('minRadius' in list(self.p.keys()) and radius < self.p.minRadius):
 				pointInPolar = (self.p.rotationAngle + direction * angleFromStart, radius)
 				point = addVectors(polarToCartesian(pointInPolar), self.p.centerPoint)
 				if len(self.points) > 0:
