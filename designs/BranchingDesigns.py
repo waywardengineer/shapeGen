@@ -4,12 +4,40 @@ import json
 from shapes.shapeUtils import *
 
 
+class branchThing(Design):
+	def build(self):
+		w1 = Lines({
+			'startPoint': (0, 0),
+			'length': 0.1,
+			'featureSize': 1.5,
+			'angle': 90,
+			'maxDepth': 80,
+			'angles': [1, 35],
+			'lengthFactor': [0.995, 0.5],
+			'branchIntervals': [None, 8, 8],
+			'branchIntervalOffsets': [None, 0, 4],
+			'minLength': 0.004,
+			'minBranchingDepth': 40,
+			'directionalityExponent': 0.4,
+			'directionalityFactor': -1,
+			'depthExponent': 0.7,
+			'depthFactor': 0.3,
+			'distanceLimitingFactor': 0.2,
+			'skipPercentage': 0,
+		})
+		topShape = ShapeGroup(
+			'topshape', w1
+		)
+		self.shapes = []
+		self.shapes.append(topShape)
+		Design.build(self)
+
 class Wing(Design):
 	def build(self):
-		inner = Lines({
+		w1 = Lines({
 			'startPoint': (0, 0),
-			'length': 0.2,
-			'featureSize': 2,
+			'length': 0.1,
+			'featureSize': 1.5,
 			'angle': 0,
 			'maxDepth': 80,
 			'angles': [25, 0],
@@ -17,8 +45,7 @@ class Wing(Design):
 			'lengthFactor': [0.995, 0.33],
 			'branchIntervals': [None, 8],
 			'branchIntervalOffsets': [None, 0],
-			'minLengthScaling': 0.01,
-			'minFeatureScaling': 0,
+			'minLength': 0.004,
 			'minBranchingDepth': 10,
 			'directionalityExponent': 0.6,
 			'directionalityFactor': 0,
@@ -27,8 +54,28 @@ class Wing(Design):
 			'distanceLimitingFactor': 0.2,
 			'skipPercentage': 0,
 		})
+		w2 = Lines({
+			'startPoint': (2, 0),
+			'length': 0.1,
+			'featureSize': 1.5,
+			'angle': 0,
+			'maxDepth': 80,
+			'angles': [25, 0],
+			'featureSizeFactor': [0.8, 0.9],
+			'lengthFactor': [0.995, 0.33],
+			'branchIntervals': [None, 8],
+			'branchIntervalOffsets': [None, 0],
+			'minLength': 0.004,
+			'minBranchingDepth': 10,
+			'directionalityExponent': 0.6,
+			'directionalityFactor': 0,
+			'depthExponent': 0.24,
+			'depthFactor': -12,
+			'distanceLimitingFactor': 0.2,
+			'skipPercentage': 0,
+		})
 		topShape = ShapeGroup(
-			'topshape', inner
+			'topshape', w2
 		)
 		self.shapes.append(topShape)
 		Design.build(self)
@@ -37,22 +84,21 @@ class HeartHalf(Design):
 	def build(self):
 		inner = Lines({
 			'startPoint': (0, 0),
-			'length': 0.2,
-			'featureSize': 2,
-			'angle': 0,
-			'maxDepth': 80,
-			'angles': [25, 0],
+			'length': 0.12,
+			'featureSize': 1,
+			'angle': -30,
+			'maxDepth': 87,
+			'angles': [28, 0],
 			'featureSizeFactor': [0.8, 0.9],
 			'lengthFactor': [0.995, 0.33],
 			'branchIntervals': [None, 8],
 			'branchIntervalOffsets': [None, 0],
-			'minLengthScaling': 0.01,
-			'minFeatureScaling': 0,
+			'minLength': 0.002,
 			'minBranchingDepth': 20,
 			'directionalityExponent': 0.6,
 			'directionalityFactor': 0,
-			'depthExponent': 0.25,
-			'depthFactor': -12,
+			'depthExponent': 0.26,
+			'depthFactor': -12.2,
 			'distanceLimitingFactor': 0.2,
 			'skipPercentage': 0,
 		})

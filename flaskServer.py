@@ -13,7 +13,7 @@ from designs import *
 # design = ThreeSidedPointyThing()
 # design = TestDesign()
 # design = MultiDesign(Chand2, 6, 1)
-design = Wing()
+design = branchThing()
 #design = Chand2()
 #design = Something()
 flaskApp = Flask(__name__,  static_folder='jsGui', static_url_path='/jsGui')

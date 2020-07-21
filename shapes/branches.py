@@ -27,7 +27,12 @@ class BranchingShapeCell(Shape):
 					continue
 				if bp.branchIntervals and (p.depth + bp.branchIntervalOffsets[angleIndex]) % bp.branchIntervals[angleIndex] > 0:
 					continue
-
+			if p.depth >= bp.maxDepth:
+				continue
+			if bp.minFeatureSize and p.featureSize < bp.minFeatureSize:
+				continue
+			if bp.minLength and p.length < bp.minLength:
+				continue
 			length = p.length * getParam(angleIndex, bp.lengthFactor)
 			branchIndex = bp.angleOrder[angleIndex]  # relates to where things physically are on the tree
 			branchAngle = baseShape.getBranchAngle(self, angleIndex)
@@ -52,21 +57,20 @@ class BranchingShapeCell(Shape):
 				if p.superCellId:
 					treeData['cells'][p.superCellId[0]].subCellIds[p.superCellId[1]] = p.cellId
 			p.endPoints[branchIndex] = endPoint
-			if p.depth < bp.maxDepth and p.length > bp.minLength and p.featureSize > bp.minFeatureSize:
-				directionalityIncrement = float(len(bp.angles) - 1) / 2 - float(
-					branchIndex)  # linearly increases as things get more offcenter
-				newParamVals = {
-					'length': length,
-					'featureSize': p.featureSize * getParam(angleIndex, bp.featureSizeFactor),
-					'angle': baseShape.getSubCellAngle(p, newBranchAngle, angleIndex),
-					'depth': p.depth + 1,
-					'startPoint': endPoint,
-					'directionalitySum': p.directionalitySum + directionalityIncrement,
-					'superCellId': (self.p.cellId, branchIndex),
-					'cellId': treeData['nextId']
-				}
-				treeData['nextId'] += 1
-				self.addSubShape(BranchingShapeCell(baseShape, newParamVals))
+			directionalityIncrement = float(len(bp.angles) - 1) / 2 - float(
+				branchIndex)  # linearly increases as things get more offcenter
+			newParamVals = {
+				'length': length,
+				'featureSize': p.featureSize * getParam(angleIndex, bp.featureSizeFactor),
+				'angle': baseShape.getSubCellAngle(p, newBranchAngle, angleIndex),
+				'depth': p.depth + 1,
+				'startPoint': endPoint,
+				'directionalitySum': p.directionalitySum + directionalityIncrement,
+				'superCellId': (self.p.cellId, branchIndex),
+				'cellId': treeData['nextId']
+			}
+			treeData['nextId'] += 1
+			self.addSubShape(BranchingShapeCell(baseShape, newParamVals))
 
 
 def getParam(index, param):
